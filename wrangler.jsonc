@@ -1,0 +1,81 @@
+// Production IDs and example.invalid hosts are placeholders. No account ID is stored here.
+{
+  "name": "tcd-mcp",
+  "main": "apps/mcp/src/index.ts",
+  "compatibility_date": "2026-11-07",
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
+  "workers_dev": false,
+  "rules": [
+    {
+      "type": "Text",
+      "globs": [
+        "**/*.css"
+      ],
+      "fallthrough": true
+    }
+  ],
+  "triggers": {
+    "crons": [
+      "* * * * *"
+    ]
+  },
+  "dev": {
+    "ip": "127.0.0.1",
+    "port": 8787
+  },
+  "vars": {
+    "PUBLIC_ORIGIN": "http://localhost:8787",
+    "ORIGIN_URL": "http://127.0.0.1:18081"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "tcd-local",
+      "database_id": "00000000-0000-4000-8000-000000000001",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "services": [
+    {
+      "binding": "AUTH_SERVER",
+      "service": "tcd-auth"
+    }
+  ],
+  "env": {
+    "production": {
+      "name": "tcd-mcp-production",
+      "workers_dev": false,
+      "vars": {
+        "PUBLIC_ORIGIN": "https://demo.example.invalid",
+        "ORIGIN_URL": "https://origin.demo.example.invalid"
+      },
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "tcd-production",
+          "database_id": "00000000-0000-4000-8000-000000000002",
+          "migrations_dir": "migrations"
+        }
+      ],
+      "routes": [
+        {
+          "pattern": "demo.example.invalid/*",
+          "zone_name": "example.invalid"
+        }
+      ],
+      "services": [
+        {
+          "binding": "AUTH_SERVER",
+          "service": "tcd-auth-production"
+        }
+      ],
+      "triggers": {
+        "crons": [
+          "* * * * *"
+        ]
+      }
+    }
+  }
+}

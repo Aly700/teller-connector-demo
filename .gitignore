@@ -1,0 +1,10 @@
+.data/
+.lane/
+.dev.vars
+.env
+*.key
+node_modules/
+.wrangler/
+target/
+vendor/teller/console/node_modules/
+.DS_Store

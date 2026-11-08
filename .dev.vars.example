@@ -1,0 +1,3 @@
+# Sample data. No real money.
+# Generated locally from scripts/init-local.sh. Never put Teller's API key here.
+ORIGIN_SIGNING_SECRET=replace-with-local-origin-secret

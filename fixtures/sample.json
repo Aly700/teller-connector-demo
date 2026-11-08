@@ -1,0 +1,18 @@
+{
+  "sampleData": true,
+  "label": "Sample data",
+  "notice": "Sample data. No real money.",
+  "poolSize": 100,
+  "currency": "CAD",
+  "depositMinor": 100000,
+  "postedMinor": 100,
+  "heldMinor": 10001,
+  "expected": {
+    "operating": { "ledgerBalanceMinor": 99900, "availableBalanceMinor": 89899 },
+    "reserve": { "ledgerBalanceMinor": 100100, "availableBalanceMinor": 100100 }
+  },
+  "rules": [
+    { "toolNameGlob": "ledger.transfer", "fourEyesAbove": 10000, "effect": "REQUIRE_APPROVAL", "precedence": 10 },
+    { "toolNameGlob": "ledger.transfer", "currency": "CAD", "amountMax": 10000, "effect": "ALLOW", "precedence": 20 }
+  ]
+}

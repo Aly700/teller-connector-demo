@@ -1,0 +1,8 @@
+# Replace the named tunnel UUID and paths before starting the tunnel.
+# This is the only forwarded service. Postgres and raw Teller have no ingress.
+tunnel: 00000000-0000-4000-8000-000000000003
+credentials-file: "@ROOT@/.data/tunnel-credentials.json"
+ingress:
+  - hostname: origin.demo.example.invalid
+    service: http://127.0.0.1:18081
+  - service: http_status:404

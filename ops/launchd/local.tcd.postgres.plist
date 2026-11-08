@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>Label</key>
+	<string>local.tcd.postgres</string>
+	<key>ProgramArguments</key>
+	<array>
+		<string>/bin/bash</string>
+		<string>@ROOT@/ops/service.sh</string>
+		<string>postgres</string>
+	</array>
+	<key>WorkingDirectory</key>
+	<string>@ROOT@</string>
+	<key>RunAtLoad</key>
+	<true/>
+	<key>KeepAlive</key>
+	<dict>
+		<key>SuccessfulExit</key>
+		<false/>
+	</dict>
+	<key>ThrottleInterval</key>
+	<integer>60</integer>
+	<key>ProcessType</key>
+	<string>Background</string>
+	<key>StandardOutPath</key>
+	<string>@ROOT@/.data/logs/launchd-postgres.log</string>
+	<key>StandardErrorPath</key>
+	<string>@ROOT@/.data/logs/launchd-postgres.log</string>
+	<key>Umask</key>
+	<integer>63</integer>
+	<key>UserName</key>
+	<string>@SERVICE_USER@</string>
+</dict>
+</plist>

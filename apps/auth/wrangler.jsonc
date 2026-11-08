@@ -1,0 +1,74 @@
+// Production IDs and example.invalid hosts are placeholders. No account ID is stored here.
+{
+  "name": "tcd-auth",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-11-07",
+  "compatibility_flags": [
+    "nodejs_compat",
+    "global_fetch_strictly_public"
+  ],
+  "workers_dev": false,
+  "rules": [
+    {
+      "type": "Text",
+      "globs": [
+        "**/*.css"
+      ],
+      "fallthrough": true
+    }
+  ],
+  "vars": {
+    "PUBLIC_ORIGIN": "http://localhost:8787"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "tcd-local",
+      "database_id": "00000000-0000-4000-8000-000000000001",
+      "migrations_dir": "../../migrations"
+    }
+  ],
+  "kv_namespaces": [
+    {
+      "binding": "OAUTH_KV",
+      "id": "00000000000000000000000000000001"
+    }
+  ],
+  "env": {
+    "production": {
+      "name": "tcd-auth-production",
+      "workers_dev": false,
+      "vars": {
+        "PUBLIC_ORIGIN": "https://demo.example.invalid"
+      },
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "tcd-production",
+          "database_id": "00000000-0000-4000-8000-000000000002",
+          "migrations_dir": "../../migrations"
+        }
+      ],
+      "routes": [
+        {
+          "pattern": "demo.example.invalid/authorize*",
+          "zone_name": "example.invalid"
+        },
+        {
+          "pattern": "demo.example.invalid/oauth/*",
+          "zone_name": "example.invalid"
+        },
+        {
+          "pattern": "demo.example.invalid/.well-known/oauth-authorization-server",
+          "zone_name": "example.invalid"
+        }
+      ],
+      "kv_namespaces": [
+        {
+          "binding": "OAUTH_KV",
+          "id": "00000000000000000000000000000002"
+        }
+      ]
+    }
+  }
+}

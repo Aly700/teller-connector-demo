@@ -1,0 +1,65 @@
+services:
+  teller-postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: teller
+      POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER must be set}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    volumes:
+      - teller-postgres-data:/var/lib/postgresql/data
+
+  teller-localstack:
+    image: localstack/localstack:3
+    environment:
+      SERVICES: sqs,s3
+      AWS_DEFAULT_REGION: us-east-1
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          awslocal sqs get-queue-url --queue-name teller-approvals >/dev/null 2>&1 &&
+          awslocal s3api head-bucket --bucket teller-audit >/dev/null 2>&1
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    ports:
+      - "4566:4566"
+    volumes:
+      - ./localstack/init-aws.sh:/etc/localstack/init/ready.d/init-aws.sh:ro
+
+  teller-app:
+    build:
+      context: .
+    environment:
+      SPRING_PROFILES_ACTIVE: local
+      DB_URL: jdbc:postgresql://teller-postgres:5432/teller
+      DB_USERNAME: ${POSTGRES_USER:?POSTGRES_USER must be set}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
+      TELLER_API_KEY: ${TELLER_API_KEY:?TELLER_API_KEY must be set}
+      AWS_REGION: us-east-1
+      AWS_ENDPOINT_URL: http://teller-localstack:4566
+      APPROVAL_QUEUE_URL: http://teller-localstack:4566/000000000000/teller-approvals
+      APPROVAL_DLQ_URL: http://teller-localstack:4566/000000000000/teller-approvals-dlq
+      APPROVAL_WORKER_ENABLED: "true"
+      SQS_WAIT_TIME_SECONDS: "20"
+      AUDIT_BUCKET: teller-audit
+    depends_on:
+      teller-postgres:
+        condition: service_healthy
+      teller-localstack:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/127.0.0.1/8080'"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+
+volumes:
+  teller-postgres-data:

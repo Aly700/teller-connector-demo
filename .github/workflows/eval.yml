@@ -1,0 +1,62 @@
+name: Synthetic connector evaluation
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 8 * * *'
+permissions:
+  contents: read
+concurrency:
+  group: teller-model-eval
+  cancel-in-progress: false
+jobs:
+  model-free:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '26'
+      - run: npm ci
+      - run: npm run typecheck
+      - run: node --import tsx --test tests/eval.test.ts
+  model:
+    needs: model-free
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && vars.ENABLE_MODEL_EVAL == 'true'
+    runs-on: ubuntu-latest
+    environment: model-eval
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '26'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+      - run: sudo apt-get update && sudo apt-get install -y postgresql-16
+      - run: npm ci
+      - run: npm run eval:ci
+        env:
+          EVAL_DATASET: isolated
+          PG_BIN: /usr/lib/postgresql/16/bin
+          NODE_BIN: /usr/local/bin
+          EVAL_MODEL_ID: ${{ vars.EVAL_MODEL_ID }}
+          EVAL_REPORT_ORIGIN: ${{ vars.EVAL_REPORT_ORIGIN }}
+          EVAL_TRIGGER: ${{ github.event_name == 'schedule' && 'scheduled' || github.event_name == 'push' && 'push' || 'manual' }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          EVAL_REPORT_SECRET: ${{ secrets.EVAL_REPORT_SECRET }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: synthetic-eval
+          path: .data/eval-report.json
+          retention-days: 30
+          if-no-files-found: ignore
