@@ -1,10 +1,11 @@
 import { browserSession,hash,type SessionProps } from '../../../packages/state.ts';
 import { SAMPLE } from '../../../packages/sample.ts';
-import { safeHttp } from '../../../packages/http.ts';
+import { safeHttp, page, escapeHtml as e } from '../../../packages/http.ts';
 import { POLICY_VERSION,WRITE_TOOL,WRITE_ANNOTATIONS,evaluate } from '../../../packages/gate/policy.ts';
 import type { Hold } from '../../../packages/gate/holds.ts';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import { acceptedArguments,tools } from './tools.ts';
+import { heading, download, time, eventTitle, badge } from './view.ts';
 export function emptyEvent(props:SessionProps|null,type:string){return {...SAMPLE,eventId:crypto.randomUUID() as string,occurredAt:new Date().toISOString(),type,sequence:null,visitorId:props?.visitorId??null,epoch:props?.epoch??null,tool:null as string|null,annotations:null as unknown,requestKey:null as string|null,argumentHash:null as string|null,arguments:null as unknown,policyVersion:null as string|null,policyRule:null as string|null,policyEffect:null as string|null,holdId:null as string|null,holdState:null as string|null,approver:null as string|null,approvedAt:null as string|null,attemptId:null as string|null,replayId:null as string|null,upstreamStatus:null as number|null,errorCode:null as string|null,latencyMs:null as number|null,tellerTransferId:null as string|null};}
 export async function saveEvent(db:D1Database,event:ReturnType<typeof emptyEvent>){
  await db.prepare('INSERT INTO audit_events(id,occurred_at,visitor_id,epoch,tool,code,event_json) VALUES(?,?,?,?,?,?,?)').bind(event.eventId,Date.parse(event.occurredAt),event.visitorId,event.epoch,event.tool,event.errorCode??event.type,JSON.stringify(event)).run();
@@ -34,4 +35,23 @@ export async function auditExport(request:Request,db:D1Database):Promise<Respons
  events.sort((a,b)=>a.occurredAt.localeCompare(b.occurredAt)||(a.holdId&&a.holdId===b.holdId?(a.sequence??0)-(b.sequence??0):a.eventId.localeCompare(b.eventId)));
  let cursor=0;const stream=new ReadableStream({pull(controller){const event=events[cursor++];if(event)controller.enqueue(new TextEncoder().encode(JSON.stringify(event)+'\n'));else controller.close();}});
  return new Response(stream,{headers:{'Content-Type':'application/x-ndjson; charset=utf-8','Content-Disposition':'attachment; filename="sample-audit.jsonl"','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'}});
+}
+
+export async function auditPage(request:Request,db:D1Database):Promise<Response> {
+ const exportUrl=new URL(request.url);exportUrl.searchParams.delete('view');
+ const response=await auditExport(new Request(exportUrl,request),db);
+ if(response.status===400)return page('<section class="error-page"><h1>Invalid audit period</h1><p class="intro">Choose a UTC range of up to 49 hours, with the start before the end.</p><div class="buttons"><a class="button secondary" href="/audit">Open the current audit</a></div></section>',400);
+ if(!response.ok)return page('<section class="error-page"><h1>Open your sample session</h1><p class="intro">The audit belongs to the browser where you started this connection.</p><div class="buttons"><a class="button secondary" href="/queue">Return to your queue</a></div></section>',response.status);
+ const events=(await response.text()).trim().split('\n').filter(Boolean).map(line=>JSON.parse(line));
+ const view=new URL(request.url).searchParams.get('view');
+ const filtered=view==='transfers'?events.filter(ev=>ev.holdId):view==='reads'?events.filter(ev=>!ev.holdId):events;
+ const shown=filtered.slice(-100).reverse();
+ const filterUrl=(key:string)=>{const url=new URL(exportUrl);if(key!=='all')url.searchParams.set('view',key);return '/audit'+url.search;};
+ const visitor=await browserSession(db,request);
+ const requests=visitor?await db.prepare('SELECT id,reference FROM holds WHERE visitor_id=? AND epoch=?').bind(visitor.id,visitor.epoch).all<{id:string;reference:string}>():{results:[]};
+ const references=new Map(requests.results.map(h=>[h.id,h.reference]));
+ return page(`${heading('Session audit trail','Inspect the saved decisions, reads, and Teller responses for this session.',download('/audit/export'+exportUrl.search))}<section class="panel"><div class="toolbar"><nav class="audit-filters filters" aria-label="Filter audit events">${[['all','All events'],['transfers','Transfers'],['reads','Reads & access']].map(([key,label])=>`<a class="filter" href="${e(filterUrl(key))}"${(view??'all')===key?' aria-current="page"':''}>${label}</a>`).join('')}</nav><small class="muted">${filtered.length} events · latest first</small></div>${shown.length?`<ol class="audit-list">${shown.map(ev=>{
+ const {notice,...details}=ev;
+ return `<li>${time(ev.occurredAt)}<div><strong>${e(eventTitle(ev))}</strong><p>${references.has(ev.holdId)?`<a href="/queue/${e(ev.holdId)}">${e(references.get(ev.holdId)!)}</a>`:e(ev.tool??'Browser session')}${ev.policyRule?' · '+e(ev.policyRule):''}</p></div>${ev.holdState?badge(ev.holdState):'<span></span>'}<details><summary>Inspect event fields</summary><pre>${e(JSON.stringify(details,null,2))}</pre></details></li>`;
+ }).join('')}</ol>`:`<div class="empty"><h2>${view?'No events in this view':'No recorded activity yet'}</h2><p>Read an account or request a transfer from your connected client to begin this session’s history.</p><a href="/guide">Open the sample guide</a></div>`}<div class="session-note">${filtered.length>100?'Showing the latest 100 events. The export includes the full selected period. ':''}Times are local; hover for UTC. Exported timestamps use UTC. This history is not claimed to be tamper-proof.</div></section>`,200,new Headers(),undefined,'audit');
 }

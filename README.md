@@ -9,7 +9,7 @@ The agent gets three read tools and one write tool. It can look up accounts and 
 ## What is in the repo
 
 - **MCP tools** for listing accounts, reading an account, reading a transfer and requesting a transfer.
-- **Browser pages** for approval, rejection and recovery, with a session audit download as JSON lines.
+- **Approval console** with a live request inbox, sample account balances, event timelines, deliberate browser approval, rejection and recovery. Inspect the session audit or download JSON lines. Dark and light themes follow your system preference, with a manual override.
 - **80 evaluation cases** and a GitHub Actions workflow that uses your own Anthropic key. The report says "Not run yet" until model results are recorded.
 - **Hosting config** for Cloudflare Workers, with Teller and Postgres on a small, always-on Mac behind a Cloudflare Tunnel.
 - **Teller source** in `vendor/teller`, plus sample data, database migrations and tests.
@@ -43,6 +43,8 @@ scripts/ci.sh
 
 It installs everything, builds Teller, and tests approval, rejection, crash recovery and reset in a real browser. It runs on this machine only and calls no model. Set `NODE_BIN`, `JAVA_HOME`, `PG_BIN` or `CHROME_PATH` to use other installs. Teller's own Docker-based tests are not run.
 
+The console is plain server-rendered HTML with one small script for local times, copying keys, the theme and a 15-second queue refresh. Approval works without JavaScript.
+
 ## License
 
-MIT. See [LICENSE](LICENSE). Teller is also by Affan Yasir and is included unmodified from commit `9418e33`, under the same licence.
+MIT. See [LICENSE](LICENSE). Teller is also by Affan Yasir and is included unmodified from commit `9418e33`, under the same licence. The bundled fonts, Manrope and IBM Plex Mono, are under the SIL Open Font License; notices are in `apps/mcp/assets/FONT-LICENSES.txt`.

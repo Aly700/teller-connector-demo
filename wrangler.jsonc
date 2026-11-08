@@ -8,6 +8,8 @@
   ],
   "workers_dev": false,
   "rules": [
+    { "type": "Data", "globs": ["**/*.woff2"], "fallthrough": true },
+    { "type": "Text", "globs": ["**/console.js"], "fallthrough": true },
     {
       "type": "Text",
       "globs": [

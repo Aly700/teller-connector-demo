@@ -2,8 +2,12 @@ import { consumeTool,securityEvent,pruneLimits } from '../../../packages/limits.
 import { endSession } from './session.ts';
 import { reportPage,evalRoute,retainReports } from '../../../eval/report.ts';
 import css from './styles.css';
-import { queuePage, detailPage, seededPage, pageError } from './pages.ts';
-import { auditExport, recordCall } from './audit.ts';
+import consoleScript from './console.js';
+import manrope from '../assets/manrope-latin.woff2';
+import plex from '../assets/plex-mono-latin.woff2';
+import { homePage, guidePage } from './guide.ts';
+import { queuePage, detailPage, seededPage, pageError, accountsPage } from './pages.ts';
+import { auditExport, auditPage, recordCall } from './audit.ts';
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { WebStandardStreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js';
 import { ListToolsRequestSchema, CallToolRequestSchema } from '@modelcontextprotocol/sdk/types.js';
@@ -36,23 +40,22 @@ export default { async fetch(request: Request, env: Env, ctx: ExecutionContext):
     if (url.pathname === '/authorize' || url.pathname.startsWith('/oauth/') || url.pathname === '/.well-known/oauth-authorization-server') return env.AUTH_SERVER.fetch(request);
     if(url.pathname==='/favicon.ico')return new Response(null,{status:204});
     if(url.pathname==='/styles.css')return new Response(css,{headers:{'Content-Type':'text/css; charset=utf-8','Cache-Control':'no-store'}});
-    if (url.pathname === '/') return page('<h1>Review a sample transfer</h1><p class="intro">Read sample accounts through your MCP client. Request a transfer, review it here, and decide whether this connector can send it to Teller.</p><p>Connect your client to <code>/mcp</code> and select Start sample session. No email or password is needed.</p><p><a href="/queue">Open your sample queue</a></p><p><a href="/guide">Read the sample guide</a></p>');
-    if (url.pathname === '/guide') {
-      const visitor = await browserSession(env.DB, request);
-      if (!visitor) return page('<h1>Start a sample session from your MCP client</h1>', 401);
-      const registry = await env.DB.prepare('SELECT * FROM sample_registry WHERE visitor_id=? AND epoch=?').bind(visitor.id, visitor.epoch).first<Registry>();
-      return page(`<h1>Sample guide</h1><p>Accounts: operating, reserve. Transfers: sample-posted, sample-held.</p><p>Use an unused request key with request_sample_transfer. A request waits here until you approve it.</p><ul class="keys">${JSON.parse(registry!.request_slots_json).map((s:any)=>`<li>${escapeHtml(s.reference)}<code>${escapeHtml(s.requestKey)}</code></li>`).join('')}</ul>`);
-    }
+    if(url.pathname==='/console.js'&&request.method==='GET')return new Response(consoleScript,{headers:{'Content-Type':'text/javascript; charset=utf-8','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'}});
+    const fonts:Record<string,ArrayBuffer>={'/assets/manrope-latin.woff2':manrope,'/assets/plex-mono-latin.woff2':plex};
+    if(fonts[url.pathname]&&request.method==='GET')return new Response(fonts[url.pathname],{headers:{'Content-Type':'font/woff2','Cache-Control':'public, max-age=86400','X-Content-Type-Options':'nosniff'}});
+    if(url.pathname==='/'&&request.method==='GET')return homePage();
+    if(url.pathname==='/guide'&&request.method==='GET')return guidePage(request,env);
+    if(url.pathname==='/accounts'&&request.method==='GET')return accountsPage(request,env);
+    if(url.pathname==='/audit'&&request.method==='GET')return auditPage(request,env.DB);
+    if(url.pathname==='/queue/snapshot'&&request.method==='GET')return queuePage(request,env,true);
     if(url.pathname==='/audit/export')return await auditExport(request,env.DB);
     if(url.pathname==='/queue'&&request.method==='GET')return await queuePage(request,env);
     if(/^\/queue\/sample-(held|posted)$/.test(url.pathname)&&request.method==='GET'){
-      const visitor=await browserSession(env.DB,request);
-      if(visitor&&!await consumeTool(env.DB,{visitorId:visitor.id,epoch:visitor.epoch},'get_sample_transfer'))return pageError('Sample call limit reached','Try again later.',429);
       return await seededPage(request,env,url.pathname.split('/')[2]);
     }
     const queue=/^\/queue\/([a-f0-9-]{36})$/.exec(url.pathname);
     if(queue)return await decisionRoute(request,env,queue[1]);
-    if (url.pathname !== '/mcp' && url.pathname !== '/.well-known/oauth-protected-resource/mcp') return safeHttp('NOT_FOUND', 404);
+    if (url.pathname !== '/mcp' && url.pathname !== '/.well-known/oauth-protected-resource/mcp') return request.method==='GET'?pageError('Page not found','This address does not point to a sample page. Return to your queue or open the sample guide.',404):safeHttp('NOT_FOUND',404);
     const response=await resource(env, async (req, props, scopes) => {
       const server = new Server({ name: 'teller-sample', version: '0.1.0' }, { capabilities: { tools: {} } });
       server.setRequestHandler(ListToolsRequestSchema, async () => ({ tools }));
