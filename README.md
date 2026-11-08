@@ -31,7 +31,7 @@ To stop everything:
 scripts/stop.sh
 ```
 
-To run the evaluation, create a GitHub environment called `model-eval` with the secrets `ANTHROPIC_API_KEY` and `EVAL_REPORT_SECRET` and the variables `EVAL_MODEL_ID` and `EVAL_REPORT_ORIGIN` (the address of your report page). It stays off until you set the repository variable `ENABLE_MODEL_EVAL=true`.
+To run the evaluation, create a GitHub environment called `model-eval` with the secrets `ANTHROPIC_API_KEY` and `EVAL_REPORT_SECRET` and the variables `EVAL_MODEL_ID` and `EVAL_REPORT_ORIGIN` (the address of your report page). It stays off until you set the repository variable `ENABLE_MODEL_EVAL=true`. To run locally in a dedicated evaluation checkout, use `EVAL_DATASET=isolated npm run eval:ci`; it replaces that checkout’s sample database.
 
 ## Tests
 
@@ -43,7 +43,7 @@ scripts/ci.sh
 
 It installs everything, builds Teller, and tests approval, rejection, crash recovery and reset in a real browser. It runs on this machine only and calls no model. Set `NODE_BIN`, `JAVA_HOME`, `PG_BIN` or `CHROME_PATH` to use other installs. Teller's own Docker-based tests are not run.
 
-The console is plain server-rendered HTML with one small script for local times, copying keys, the theme and a 15-second queue refresh. Approval works without JavaScript.
+The console brings requests, account balances, policies, audit events, evaluation cases and connection settings into one workspace. Pages are server-rendered, with one dependency-free script for session search, tables, keyboard controls, time display and theme. Approval works without JavaScript.
 
 ## License
 
