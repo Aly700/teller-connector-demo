@@ -7,6 +7,8 @@
   function announce(message) {
     if (!toast) return;
     clearTimeout(toastTimer);
+    const host = document.querySelector("dialog[open]") || document.body;
+    if (toast.parentElement !== host) host.append(toast);
     toast.textContent = message;
     toast.hidden = false;
     toastTimer = setTimeout(() => {

@@ -1836,3 +1836,5 @@ pre, .arguments pre, .schema pre { border-radius: 12px; background: var(--raised
 .event-dialog > .drawer-footer { flex-shrink: 0; }
 .observations .observation-table .table thead { position: static; clip: auto; width: auto; height: auto; overflow: visible; }
 .observations .observation-table .table th { position: sticky; top: 0; }
+
+.request-dialog > .toast, .event-dialog > .toast, .case-dialog > .toast { position: absolute; left: 50%; bottom: 68px; max-width: calc(100% - 32px); width: max-content; }

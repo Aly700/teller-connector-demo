@@ -92,6 +92,15 @@ test('drawer preserves queue context, isolates ownership, restores focus, and se
     assert.equal(page.url(), queueUrl);
     assert.equal(await page.evaluate(() => (window as any).drawerDocument), 'original queue');
     assert.equal(await row.getAttribute('data-selected'), 'true');
+    await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+    await drawer.getByRole('button', { name: 'Copy request ID', exact: true }).click();
+    await drawer.getByRole('button', { name: 'Copied to clipboard', exact: true }).waitFor();
+    const toast = drawer.locator('.toast');
+    assert.equal(await toast.isVisible(), true);
+    assert.equal(await toast.evaluate(element => {
+      const box = element.getBoundingClientRect();
+      return element.contains(document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2));
+    }), true, 'feedback appears above the native modal layer');
     assert.notEqual(await rowOf(page, untouched).getAttribute('data-selected'), 'true');
     assert.equal(new URL((await drawer.getByRole('link', { name: 'Open full page', exact: true }).getAttribute('href'))!, base).pathname, requestPath);
     assert.match(await drawer.locator('.plain-words').innerText(), /\$1\.25 CAD from operating to reserve/);
