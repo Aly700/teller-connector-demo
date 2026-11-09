@@ -43,7 +43,7 @@ scripts/ci.sh
 
 It installs everything, builds Teller, and tests approval, rejection, crash recovery and reset in a real browser. It runs on this machine only and calls no model. Set `NODE_BIN`, `JAVA_HOME`, `PG_BIN` or `CHROME_PATH` to use other installs. Teller's own Docker-based tests are not run.
 
-The console brings requests, account balances, policies, audit events, evaluation cases and connection settings into one workspace. Pages are server-rendered, with one dependency-free script for session search, tables, keyboard controls, time display and theme. Approval works without JavaScript.
+The console brings requests, balances, policies, audit events, evaluation cases and connection settings into one workspace, with measured session charts and plain-language request explanations. Server-rendered pages use one dependency-free script for search, tables, request drawers, keyboard controls, time display and Auto, Light or Dark themes. Approval also works without JavaScript.
 
 ## License
 
