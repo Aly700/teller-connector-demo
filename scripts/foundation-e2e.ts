@@ -8,7 +8,7 @@ import { CallToolResultSchema, type CallToolResult } from '@modelcontextprotocol
 import { tools } from '../apps/mcp/src/tools.ts';
 import { cookies } from '../tests/helpers.ts';
 const base = 'http://localhost:8787';
-const transcript: string[] = [`Sample data. No real money.`, `Run: ${new Date().toISOString()}`, 'Official MCP TypeScript SDK 1.32.2; local Wrangler 4.158.0; local D1/KV, signed origin, real Teller and Postgres.', 'Credentials, auth codes, PKCE verifier and cookies are omitted.'];
+const transcript: string[] = [`Demo data. No real money.`, `Run: ${new Date().toISOString()}`, 'Official MCP TypeScript SDK 1.32.2; local Wrangler 4.158.0; local D1/KV, signed origin, real Teller and Postgres.', 'Credentials, auth codes, PKCE verifier and cookies are omitted.'];
 function log(value: string) { transcript.push(value); console.log(value); }
 let clientInfo: OAuthClientInformationMixed | undefined, tokens: OAuthTokens | undefined, verifier = '', authorization: URL | undefined;
 const state = crypto.randomUUID();
@@ -29,7 +29,7 @@ assert.ok(authorization); assert.equal(authorization.searchParams.get('code_chal
 assert.equal(authorization.searchParams.get('resource'), base + '/mcp');
 log('PASS 401 challenge -> protected-resource metadata -> authorization-server metadata -> dynamic registration -> S256 PKCE authorization.');
 const consent = await fetch(authorization, { redirect: 'manual' }); assert.equal(consent.status, 200);
-const html = await consent.text(); assert.ok(html.includes('Start sample session'));
+const html = await consent.text(); assert.ok(html.includes('Start demo session'));
 const handle = /name="handle" value="([^"]+)"/.exec(html)![1];
 const form = new URLSearchParams({ handle, decision: 'approve' });
 for (const match of html.matchAll(/name="scope" value="([^"]+)"/g)) form.append('scope', match[1]);
@@ -53,21 +53,21 @@ assert.equal(transport.protocolVersion, '2025-11-25');
 log(`PASS negotiated protocol ${transport.protocolVersion}; Streamable HTTP, JSON responses.`);
 const listed = await client.listTools(); assert.deepEqual(listed.tools, tools);
 log('tools/list: ' + JSON.stringify(listed, null, 2));
-const list = await client.callTool({ name: 'list_sample_accounts', arguments: {} }, CallToolResultSchema) as CallToolResult; assert.ok(!list.isError);
-log('list_sample_accounts: ' + JSON.stringify(list.structuredContent, null, 2));
+const list = await client.callTool({ name: 'list_accounts', arguments: {} }, CallToolResultSchema) as CallToolResult; assert.ok(!list.isError);
+log('list_accounts: ' + JSON.stringify(list.structuredContent, null, 2));
 const records = list.structuredContent!.accounts as any[];
 assert.equal(records[0].ledgerBalanceMinor, 99900); assert.equal(records[0].availableBalanceMinor, 89899);
 assert.equal(records[1].ledgerBalanceMinor, 100100); assert.equal(records[1].availableBalanceMinor, 100100);
 assert.equal((list.structuredContent!.requestSlots as any[]).length, 5);
-const account = await client.callTool({ name: 'get_sample_account', arguments: { account: 'operating' } }, CallToolResultSchema) as CallToolResult;
+const account = await client.callTool({ name: 'get_account', arguments: { account: 'operating' } }, CallToolResultSchema) as CallToolResult;
 assert.ok(!account.isError); assert.deepEqual(account.structuredContent, records[0]);
-log('get_sample_account: ' + JSON.stringify(account.structuredContent, null, 2));
+log('get_account: ' + JSON.stringify(account.structuredContent, null, 2));
 for (const reference of ['sample-posted', 'sample-held']) {
-  const transfer = await client.callTool({ name: 'get_sample_transfer', arguments: { reference } }, CallToolResultSchema) as CallToolResult; assert.ok(!transfer.isError);
+  const transfer = await client.callTool({ name: 'get_transfer', arguments: { reference } }, CallToolResultSchema) as CallToolResult; assert.ok(!transfer.isError);
   assert.equal(transfer.structuredContent!.status, reference === 'sample-held' ? 'TELLER_HELD' : 'POSTED');
-  log(`get_sample_transfer(${reference}): ` + JSON.stringify(transfer.structuredContent, null, 2));
+  log(`get_transfer(${reference}): ` + JSON.stringify(transfer.structuredContent, null, 2));
 }
-const invalid = await client.callTool({ name: 'get_sample_account', arguments: { account: 'operating', approved: true } }, CallToolResultSchema) as CallToolResult;
+const invalid = await client.callTool({ name: 'get_account', arguments: { account: 'operating', approved: true } }, CallToolResultSchema) as CallToolResult;
 assert.equal(invalid.isError, true); assert.equal(invalid.structuredContent!.code, 'INVALID_INPUT');
 log('PASS extra input refused: INVALID_INPUT.');
 const approval = await fetch(base + '/approvals/example/approve', { method: 'POST', headers: { Authorization: 'Bearer ' + tokens.access_token } });

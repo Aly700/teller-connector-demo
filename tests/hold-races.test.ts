@@ -4,10 +4,10 @@ import { fixture } from './d1.ts';
 import { createHold, getHold, issueCsrf, decideHold, sweepHolds } from '../packages/gate/holds.ts';
 import { evaluate } from '../packages/gate/policy.ts';
 test('ordered policy takes the first matching rule and defaults to deny', () => {
-  assert.equal(evaluate('request_sample_transfer', false, false, true).rule, 'disabled-or-expired');
-  assert.equal(evaluate('request_sample_transfer', true, false, true).rule, 'disallowed-input');
-  assert.equal(evaluate('request_sample_transfer', true, true, true).effect, 'REQUIRE_APPROVAL');
-  assert.equal(evaluate('get_sample_account', true, true, true).effect, 'ALLOW');
+  assert.equal(evaluate('request_transfer', false, false, true).rule, 'disabled-or-expired');
+  assert.equal(evaluate('request_transfer', true, false, true).rule, 'disallowed-input');
+  assert.equal(evaluate('request_transfer', true, true, true).effect, 'REQUIRE_APPROVAL');
+  assert.equal(evaluate('get_account', true, true, true).effect, 'ALLOW');
   assert.equal(evaluate('approve', true, true, true).effect, 'DENY');
 });
 test('a held request freezes the body and key, deduplicates, and never calls the network', async () => {

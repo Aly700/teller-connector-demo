@@ -45,8 +45,8 @@ test("all console routes stay usable at desktop, phone and narrow landscape size
       { width: 720, height: 450 },
     ]) {
       const s = await session();
-      const list = await call(s, "list_sample_accounts", {});
-      const held = await call(s, "request_sample_transfer", {
+      const list = await call(s, "list_accounts", {});
+      const held = await call(s, "request_transfer", {
         fromAccount: "operating",
         toAccount: "reserve",
         amountMinor: 137,
@@ -116,7 +116,7 @@ test("all console routes stay usable at desktop, phone and narrow landscape size
           );
           assert.equal(
             await page
-              .getByText("Sample data. No real money.", { exact: true })
+              .getByText("Demo data. No real money.", { exact: true })
               .count(),
             1,
             label,
@@ -150,7 +150,7 @@ test("all console routes stay usable at desktop, phone and narrow landscape size
             assert.equal(
               await page
                 .getByRole("button", {
-                  name: "Approve sample transfer",
+                  name: "Approve transfer",
                   exact: true,
                 })
                 .isVisible(),
@@ -196,8 +196,8 @@ test("all console routes stay usable at desktop, phone and narrow landscape size
 
 test("search, nested navigation, preferences and confirmation are keyboard operable and persist correctly", async () => {
   const s = await session();
-  const list = await call(s, "list_sample_accounts", {});
-  const held = await call(s, "request_sample_transfer", {
+  const list = await call(s, "list_accounts", {});
+  const held = await call(s, "request_transfer", {
     fromAccount: "operating",
     toAccount: "reserve",
     amountMinor: 275,
@@ -256,7 +256,7 @@ test("search, nested navigation, preferences and confirmation are keyboard opera
     await page.keyboard.press("Enter");
     assert.equal(
       await page
-        .getByRole("button", { name: "Approve sample transfer", exact: true })
+        .getByRole("button", { name: "Approve transfer", exact: true })
         .isVisible(),
       true,
     );
@@ -264,7 +264,7 @@ test("search, nested navigation, preferences and confirmation are keyboard opera
     await page.keyboard.press("Escape");
     assert.equal(
       await page
-        .getByRole("button", { name: "Approve sample transfer", exact: true })
+        .getByRole("button", { name: "Approve transfer", exact: true })
         .isVisible(),
       false,
     );
@@ -476,12 +476,12 @@ test("search, nested navigation, preferences and confirmation are keyboard opera
 
 test("request, audit and evaluation tables filter, sort, paginate and open full event records", async () => {
   const s = await session();
-  const list = await call(s, "list_sample_accounts", {});
+  const list = await call(s, "list_accounts", {});
   const amounts = [325, 125, 225];
   const held = [];
   for (const [index, amountMinor] of amounts.entries())
     held.push(
-      await call(s, "request_sample_transfer", {
+      await call(s, "request_transfer", {
         fromAccount: "operating",
         toAccount: "reserve",
         amountMinor,
@@ -491,7 +491,7 @@ test("request, audit and evaluation tables filter, sort, paginate and open full 
     );
   // Duplicate requests add audit evidence without dispatching another transfer or consuming a new slot.
   for (let i = 0; i < 8; i++)
-    await call(s, "request_sample_transfer", {
+    await call(s, "request_transfer", {
       fromAccount: "operating",
       toAccount: "reserve",
       amountMinor: amounts[0],

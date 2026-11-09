@@ -5,17 +5,17 @@ import { chromium } from '../scripts/browser.ts';
 import { readFile } from 'node:fs/promises';
 const call=async(s:any,name:string,args:object)=>(await (await mcp(s.tokens.access_token,'tools/call',{name,arguments:args})).json() as any).result;
 test('queue and detail are browser-owned, keyboard operable, responsive and export complete safe JSON lines',async()=>{
- const s=await session(),other=await session();const list=await call(s,'list_sample_accounts',{});
+ const s=await session(),other=await session();const list=await call(s,'list_accounts',{});
  const input={fromAccount:'operating',toAccount:'reserve',amountMinor:123,currency:'CAD',requestKey:list.structuredContent.requestSlots[0].requestKey};
- const held=(await call(s,'request_sample_transfer',input)).structuredContent;
+ const held=(await call(s,'request_transfer',input)).structuredContent;
  const browser=await chromium.launch();
  try{
   const context=await browser.newContext({viewport:{width:390,height:844}});
   await context.addCookies([{name:'__Host-sample-session',value:/__Host-sample-session=([^;]+)/.exec(s.cookie)![1],domain:'localhost',path:'/',secure:true,httpOnly:true,sameSite:'Lax'}]);
   const page=await context.newPage();const errors:string[]=[];page.on('pageerror',(e:any)=>errors.push(String(e)));
-  await page.goto(base+'/queue');assert.match(await page.locator('body').innerText(),/Your sample queue/);
+  await page.goto(base+'/queue');assert.match(await page.locator('body').innerText(),/Your queue/);
   await page.goto(held.approvalUrl);assert.match(await page.locator('body').innerText(),/Waiting for your approval/);assert.match(await page.locator('body').innerText(),/\$1\.23 CAD/);
-  assert.ok(await page.getByText('Sample data. No real money.',{exact:true}).isVisible());
+  assert.ok(await page.getByText('Demo data. No real money.',{exact:true}).isVisible());
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
   const before=JSON.parse(await readFile('.data/origin-metrics.json','utf8')).transferPosts;
   const decisionResponse=page.waitForResponse((r:any)=>r.request().method()==='POST');
@@ -24,7 +24,7 @@ test('queue and detail are browser-owned, keyboard operable, responsive and expo
   await page.getByRole('heading',{name:'Rejected by you',exact:true}).waitFor();
   assert.equal(JSON.parse(await readFile('.data/origin-metrics.json','utf8')).transferPosts,before);
   assert.equal((await fetch(held.approvalUrl,{headers:{Cookie:other.cookie}})).status,404);
-  await call(s,'get_sample_account',{account:'operating',note:'PRIVATE REJECTED TEXT'});
+  await call(s,'get_account',{account:'operating',note:'PRIVATE REJECTED TEXT'});
   const exportResponse=await fetch(base+'/audit/export',{headers:{Cookie:s.cookie}});assert.equal(exportResponse.status,200);
   const text=await exportResponse.text();assert.ok(!text.includes('PRIVATE REJECTED TEXT'));assert.ok(!text.includes(s.tokens.access_token));
   const events=text.trim().split('\n').map(line=>JSON.parse(line));assert.ok(events.length>=4);

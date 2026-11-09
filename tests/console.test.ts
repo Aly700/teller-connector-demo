@@ -28,8 +28,9 @@ test('all request outcomes render honest receipt boundaries, exact event times a
   const f=await fixture(),env=envFor(f.db);let h=await createHold(f.db,f.props,f.input);
   if(state!=='HELD') h=(await mutate(f.db,h,{status:state,...(['POSTED','TELLER_HELD','TELLER_DENIED'].includes(state)?{teller_id:crypto.randomUUID(),send_started_at:Date.now()}:{}),...(['DISPATCHING','OUTCOME_UNKNOWN','UPSTREAM_REJECTED'].includes(state)?{send_started_at:Date.now()}: {})},state))!;
   const html=await (await detailPage(request(f.cookie),env,h.id)).text();
-  assert.match(html,/Event timeline/);assert.match(html,/Idempotency key/);assert.ok(html.includes(h.policy_rule));assert.ok(html.includes(new Date(h.created_at).toISOString()));
-  assert.equal((html.match(/Sample data\. No real money\./g)||[]).length,1);
+  assert.match(html,/Event timeline/);assert.match(html,/Idempotency key/);assert.ok(html.includes('Transfers need approval'));
+ assert.ok(!html.includes(h.policy_rule));assert.ok(html.includes(new Date(h.created_at).toISOString()));
+  assert.equal((html.match(/Demo data\. No real money\./g)||[]).length,1);
   assert.equal(html.includes('Teller has received nothing'),['HELD','DENIED','EXPIRED'].includes(state));
   assert.equal(html.includes('name="action" value="approve"'),state==='HELD');
   if(state==='POSTED'){assert.match(html,/Ledger reference:/);assert.ok(html.includes(h.teller_id!));}
@@ -50,7 +51,7 @@ test('guide only offers unused keys as examples and safely escapes session data'
 
 test('browser account reads respect the tool kill switch',async()=>{
  const f=await fixture();
- f.raw.prepare("UPDATE config SET tools_json=json_set(tools_json,'$.list_sample_accounts',0)").run();
+ f.raw.prepare("UPDATE config SET tools_json=json_set(tools_json,'$.list_accounts',0)").run();
  const response=await accountsPage(request(f.cookie,'/accounts'),envFor(f.db));
  assert.equal(response.status,503);assert.match(await response.text(),/read is currently disabled/);
  f.raw.close();

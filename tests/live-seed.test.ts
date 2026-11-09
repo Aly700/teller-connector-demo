@@ -19,5 +19,5 @@ test('all 100 real Teller pairs have expected balances and the second-layer hold
       const response = await fetch(request); assert.equal(response.status, 200); check(await response.json());
     }
   }
-  console.log('Verified 400 signed origin reads against real Teller. Sample data. No real money.');
+  console.log('Verified 400 signed origin reads against real Teller. Demo data. No real money.');
 });

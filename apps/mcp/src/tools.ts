@@ -7,23 +7,23 @@ import type { Registry } from '../../../packages/state.ts';
 import { accountSchema, transferSchema, TellerClient, UpstreamError } from './teller.ts';
 const annotations = { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false };
 export const tools: Tool[] = [
-  { name: 'list_sample_accounts', title: 'List sample accounts', description: "List this visitor's two sample accounts, balances, known transfer references and unused request keys. All records are simulated.", annotations,
+  { name: 'list_accounts', title: 'List accounts', description: "List the two accounts in this session, their balances, known transfer references and unused request keys.", annotations,
     inputSchema: { type: 'object', properties: {}, additionalProperties: false } },
-  { name: 'get_sample_account', title: 'Read a sample account', description: 'Read the ledger and available balance of the selected sample account in CAD minor units.', annotations,
+  { name: 'get_account', title: 'Read an account', description: 'Read the ledger and available balance of the selected account in CAD minor units.', annotations,
     inputSchema: { type: 'object', properties: { account: { type: 'string', enum: [...ACCOUNTS] } }, required: ['account'], additionalProperties: false } },
-  { name: 'get_sample_transfer', title: 'Read a sample transfer', description: 'Read the state of a known sample transfer. A connector request without a Teller transfer is still waiting in the demo queue.', annotations,
+  { name: 'get_transfer', title: 'Read a transfer', description: 'Read the state of a known transfer. A connector request without a Teller transfer is still waiting for your decision.', annotations,
     inputSchema: { type: 'object', properties: { reference: { type: 'string', enum: [...REFERENCES] } }, required: ['reference'], additionalProperties: false } },
 ];
-tools.push({ name: WRITE_TOOL, title: 'Request a held sample transfer', description: 'Create a held request to move sample CAD between the two sample accounts. Teller is called only after this visitor approves on the web page. Reusing the same request key returns the existing request.', annotations: WRITE_ANNOTATIONS, inputSchema: { type:'object', properties: { fromAccount:{type:'string',enum:[...ACCOUNTS]}, toAccount:{type:'string',enum:[...ACCOUNTS]}, amountMinor:{type:'integer',minimum:1,maximum:10000}, currency:{type:'string',const:'CAD'}, requestKey:{type:'string',format:'uuid'} }, required:['fromAccount','toAccount','amountMinor','currency','requestKey'], additionalProperties:false } });
+tools.push({ name: WRITE_TOOL, title: 'Request a transfer', description: 'Request a transfer between Operating and Reserve in CAD. It waits for your approval before anything is sent to Teller. Reusing the same request key returns the existing request.', annotations: WRITE_ANNOTATIONS, inputSchema: { type:'object', properties: { fromAccount:{type:'string',enum:[...ACCOUNTS]}, toAccount:{type:'string',enum:[...ACCOUNTS]}, amountMinor:{type:'integer',minimum:1,maximum:10000}, currency:{type:'string',const:'CAD'}, requestKey:{type:'string',format:'uuid'} }, required:['fromAccount','toAccount','amountMinor','currency','requestKey'], additionalProperties:false } });
 const inputs: z.ZodType[] = [z.strictObject({}), z.strictObject({ account: z.enum(ACCOUNTS) }), z.strictObject({ reference: z.enum(REFERENCES) })];
 export function acceptedArguments(name:string,args:unknown):Record<string,unknown>|null{const index=tools.findIndex(t=>t.name===name);if(index<0||index>2)return null;const parsed=inputs[index].safeParse(args??{});return parsed.success?parsed.data as Record<string,unknown>:null;}
-const invalid = ['This read takes no inputs.', 'Choose operating or reserve.', 'Choose a transfer reference from the sample guide.'];
+const invalid = ['This read takes no inputs.', 'Choose operating or reserve.', 'Choose a transfer reference from the guide.'];
 const messages: Record<number, [string, string[]]> = {
-  400: ['UPSTREAM_CONTRACT', ['Teller rejected the sample account read. The demo needs repair.', 'Teller rejected this sample account read. The demo needs repair.', 'Teller rejected this sample transfer read. The demo needs repair.']],
-  404: ['SAMPLE_RESET', ['Sample accounts changed. Start a new demo session.', 'This sample account is unavailable. Start a new demo session.', 'No sample transfer exists for that reference. Check the demo queue.']],
-  401: ['UPSTREAM_AUTH', ['Sample accounts are unavailable while the demo connection is repaired.', 'This sample account is unavailable while the demo connection is repaired.', 'This sample transfer is unavailable while the demo connection is repaired.']],
-  409: ['UPSTREAM_CONFLICT', ['Sample accounts could not be read consistently. Try again.', 'This sample account could not be read consistently. Try again.', 'This sample transfer could not be read consistently. Check the queue.']],
-  0: ['UPSTREAM_UNAVAILABLE', ['Sample accounts are unavailable. Try again later.', 'This sample account is unavailable. Try again later.', 'This sample transfer is unavailable. Check the queue or try again later.']],
+  400: ['UPSTREAM_CONTRACT', ['Teller rejected the account read. The demo needs repair.', 'Teller rejected this account read. The demo needs repair.', 'Teller rejected this transfer read. The demo needs repair.']],
+  404: ['SAMPLE_RESET', ['Accounts changed. Start a new demo session.', 'This account is unavailable. Start a new demo session.', 'No transfer exists for that reference. Check the demo queue.']],
+  401: ['UPSTREAM_AUTH', ['Accounts are unavailable while the demo connection is repaired.', 'This account is unavailable while the demo connection is repaired.', 'This transfer is unavailable while the demo connection is repaired.']],
+  409: ['UPSTREAM_CONFLICT', ['Accounts could not be read consistently. Try again.', 'This account could not be read consistently. Try again.', 'This transfer could not be read consistently. Check the queue.']],
+  0: ['UPSTREAM_UNAVAILABLE', ['Accounts are unavailable. Try again later.', 'This account is unavailable. Try again later.', 'This transfer is unavailable. Check the queue or try again later.']],
 };
 export function failure(code: string, message: string): CallToolResult {
   return { isError: true, content: [{ type: 'text', text: message }], structuredContent: { code, ...SAMPLE } };
@@ -38,7 +38,7 @@ export function success(record: Record<string, unknown>): CallToolResult {
 export async function readTool(name: string, args: unknown, registry: Registry, teller: TellerClient, holds:Hold[]=[], origin='http://localhost:8787'): Promise<CallToolResult> {
   const readSuccess=(record:Record<string,unknown>):CallToolResult=>({...success(record),_meta:{upstreamStatus:200}});
   const index = tools.findIndex(t => t.name === name);
-  if (index < 0 || index > 2) return failure('INVALID_INPUT', 'Choose a listed sample read.');
+  if (index < 0 || index > 2) return failure('INVALID_INPUT', 'Choose a listed read.');
   const parsed = inputs[index].safeParse(args ?? {});
   if (!parsed.success) return failure('INVALID_INPUT', invalid[index]);
   try {

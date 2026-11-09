@@ -9,13 +9,13 @@ import { securityEvent } from './audit.ts';
 import type { Env } from './auth.ts';
 export async function decisionRoute(request:Request,env:Env,id:string):Promise<Response>{
  const visitor=await browserSession(env.DB,request);
- if(!visitor)return pageError('Open your sample session','An MCP token or a copied link cannot approve a request. Use the browser where you started the connection.',401);
+ if(!visitor)return pageError('Open your session','An MCP token or a copied link cannot approve a request. Use the browser where you started the connection.',401);
  const props={visitorId:visitor.id,epoch:visitor.epoch};
  const hold=await getHold(env.DB,visitor,id);
- if(!hold){await securityEvent(env.DB,props,'NOT_FOUND');return pageError('Request not found','This request is not part of your current sample session.',404);}
+ if(!hold){await securityEvent(env.DB,props,'NOT_FOUND');return pageError('Request not found','This request is not part of your current session.',404);}
  if(request.method==='GET'){await watchdog(env.DB,Date.now(),visitor);return detailPage(request,env,id);}
  if(request.method!=='POST')return pageError('Method not allowed','Open the request to review it.',405);
- if(request.headers.get('Origin')!==env.PUBLIC_ORIGIN){await securityEvent(env.DB,props,'INVALID_ORIGIN');return pageError('Action refused','Open the request again from your sample queue.',403);}
+ if(request.headers.get('Origin')!==env.PUBLIC_ORIGIN){await securityEvent(env.DB,props,'INVALID_ORIGIN');return pageError('Action refused','Open the request again from your queue.',403);}
  try{
   const form=await request.formData();
   if([...form.keys()].some(k=>!['csrf','bodyHash','action','confirmed'].includes(k))||!['approve','deny','replay'].includes(String(form.get('action'))))throw new Error('INVALID_INPUT');

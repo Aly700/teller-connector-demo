@@ -1,5 +1,6 @@
 import type { Hold } from '../../../packages/gate/holds.ts';
 import { POLICY_RULES, POLICY_VERSION } from '../../../packages/gate/policy.ts';
+import { policyVersionLabel, ruleTitle } from './policy-display.ts';
 
 export interface RequestExplanation {
   paragraph: string;
@@ -64,7 +65,7 @@ function historicalEvidence(h: Hold, args: Arguments | null, events: RecordValue
     if (event.sequence !== index + 1 || event.holdId !== h.id || event.visitorId !== h.visitor_id ||
       event.epoch !== h.epoch || event.requestKey !== h.request_key || event.argumentHash !== h.body_hash ||
       event.policyVersion !== h.policy_version || event.policyRule !== h.policy_rule ||
-      event.policyEffect !== 'REQUIRE_APPROVAL' || event.tool !== 'request_sample_transfer' ||
+      event.policyEffect !== 'REQUIRE_APPROVAL' || event.tool !== 'request_transfer' ||
       !sameArguments(event.arguments, args)) return 'The recorded history does not match the saved request, arguments, or policy.';
   }
   return null;
@@ -100,7 +101,7 @@ function receiptOf(h: Hold, events: RecordValue[] | null, historyValid: boolean)
 
 function receiptWords(h: Hold, receipt: RequestExplanation['receipt']): string {
   switch (receipt) {
-    case 'not-sent': return 'Teller has received nothing from this transfer request.';
+    case 'not-sent': return 'Teller has received nothing yet.';
     case 'posted': return 'Teller received the transfer and posted it in its ledger.';
     case 'rejected': return h.status === 'TELLER_DENIED'
       ? 'Teller received the transfer and denied it under its own policy; it was not posted.'
@@ -120,7 +121,7 @@ export function requestExplanation(h: Hold): RequestExplanation {
   const historyError = historicalEvidence(h, args, events);
   const traceUnavailableReason = historyError ??
     (!historicalPolicyKnown || h.policy_version !== 'sample-gate-v1'
-      ? `The ordered rules for saved policy ${h.policy_version} are not available.`
+      ? 'The ordered rules for this saved policy version are not available.'
       : h.policy_rule !== 'browser-approval'
         ? 'The saved rule does not match the approval rule in this policy version.' : null);
   const trace: RequestExplanation['trace'] = traceUnavailableReason ? [] : POLICY_RULES.map(rule => ({
@@ -128,31 +129,37 @@ export function requestExplanation(h: Hold): RequestExplanation {
     description: rule.description,
     status: rule.precedence < 30 ? 'checked' : rule.precedence === 30 ? 'matched' : 'skipped',
     reason: rule.precedence < 30
-      ? 'Checked without a match: the saved HELD event records a later first match at browser-approval.'
+      ? rule.precedence === 10
+        ? 'The connection and this session were active.'
+        : 'The saved amount, accounts and request key were allowed.'
       : rule.precedence === 30
-        ? 'Matched: the saved HELD event records REQUIRE_APPROVAL for this transfer.'
-        : 'Skipped because browser-approval had already matched; the gate stops at its first match.',
+        ? 'Matched. This transfer needed your approval before it could be sent.'
+        : 'Skipped. The approval rule had already matched, so no later rules were checked.',
   }));
   const receipt = receiptOf(h, events, historyError === null);
   const decisionOpen = h.status === 'HELD' && receipt === 'not-sent';
   const request = args
-    ? `The agent asked for $${(args.amountMinor / 100).toFixed(2)} CAD from ${args.fromAccount} to ${args.toAccount}.`
+    ? `The agent asked to move $${(args.amountMinor / 100).toFixed(2)} from ${args.fromAccount === 'operating' ? 'Operating' : 'Reserve'} to ${args.toAccount === 'operating' ? 'Operating' : 'Reserve'}.`
     : 'The saved request amount and accounts cannot be read reliably.';
   const why = traceUnavailableReason
-    ? `The saved hold names rule ${h.policy_rule} under policy ${h.policy_version}, but its historical reason cannot be verified.`
-    : `Rule browser-approval (${h.policy_version}) held it for your browser approval.`;
+    ? 'The reason for the saved hold cannot be verified from its history.'
+    : decisionOpen
+      ? 'Transfers need your approval, so it is waiting here.'
+      : 'Transfers need your approval, so it waited for your decision.';
   const decision = decisionOpen
-    ? 'Approving sends this saved instruction to Teller; rejecting closes it without sending. Teller may still hold or reject it.'
+    ? 'Approve to send it to Teller once, or reject to close it without sending.'
     : h.status === 'HELD'
       ? 'The hold is still marked open, but the earlier execution evidence needs review before a new approval or rejection.'
       : h.status === 'DENIED'
-        ? 'You rejected this request; approval and rejection are closed.'
+        ? 'You rejected it. This request is closed.'
         : h.status === 'EXPIRED'
-          ? 'The approval window has closed; approval and rejection are closed.'
-          : 'The connector decision is complete; approval and rejection are closed for this saved request.';
+          ? 'Approval expired. This request is closed.'
+          : h.approved_at && historyError === null
+            ? 'You approved it. This request cannot be approved again.'
+            : 'This request cannot be approved or rejected again.';
   return {
     paragraph: `${request} ${why} ${decision} ${receiptWords(h, receipt)}`,
-    source: `Saved request ${h.reference} (${h.id}); policy ${h.policy_version}, rule ${h.policy_rule}; request hash ${h.body_hash}.`,
+    source: `Source: saved request · ${ruleTitle(h.policy_rule)}, ${policyVersionLabel(h.policy_version)}.`,
     trace, traceAvailable: traceUnavailableReason === null, traceUnavailableReason, receipt, decisionOpen,
   };
 }

@@ -14,7 +14,7 @@ export async function endSession(
   const visitor = await browserSession(db, request);
   if (!visitor)
     return page(
-      '<section class="error-page"><h1>No active sample session</h1><p class="intro">This browser has no active sample connection. Start a new session from your MCP client.</p><div class="buttons"><a class="button secondary" href="/">Open connection guide</a></div></section>',
+      '<section class="error-page"><h1>No active session</h1><p class="intro">This browser has no active connection. Start a new session from your MCP client.</p><div class="buttons"><a class="button secondary" href="/">Open connection guide</a></div></section>',
       401,
     );
   if (request.method === "GET") {
@@ -26,7 +26,7 @@ export async function endSession(
       .bind(visitor.id, visitor.epoch, await hash(csrf), Date.now() + 300000)
       .run();
     return page(
-      `<section class="narrow"><div class="page-heading"><div><h1>End this sample session</h1><p>Close access for this browser and its connected client.</p></div></div><div class="panel"><div class="panel-body"><div class="scope-row">${icon("lock")}<div><h3>Revoke connector access</h3><p>The browser session and its connector token can no longer act.</p></div></div><div class="scope-row">${icon("clock")}<div><h3>Close pending requests</h3><p>Requests awaiting your approval expire. A transfer already sent to Teller cannot be undone here.</p></div></div></div><div class="consent-footer"><form method="post"><input type="hidden" name="csrf" value="${csrf}"><div class="buttons"><button class="secondary danger">End sample session ${icon("end")}</button><a class="button secondary" href="/queue">Keep session open</a></div></form></div></div></section>`,
+      `<section class="narrow"><div class="page-heading"><div><h1>End this session</h1><p>Close access for this browser and its connected client.</p></div></div><div class="panel"><div class="panel-body"><div class="scope-row">${icon("lock")}<div><h3>Revoke connector access</h3><p>The session and its connector token can no longer act.</p></div></div><div class="scope-row">${icon("clock")}<div><h3>Close pending requests</h3><p>Requests awaiting your approval expire. A transfer already sent to Teller cannot be undone here.</p></div></div></div><div class="consent-footer"><form method="post"><input type="hidden" name="csrf" value="${csrf}"><div class="buttons"><button class="secondary danger">End session ${icon("end")}</button><a class="button secondary" href="/queue">Keep session open</a></div></form></div></div></section>`,
     );
   }
   if (request.method !== "POST") return safeHttp("METHOD_NOT_ALLOWED", 405);
@@ -61,7 +61,7 @@ export async function endSession(
     epoch: visitor.epoch,
   });
   return page(
-    '<section class="error-page"><h1>Sample session ended</h1><p class="intro">Your connector token and browser session can no longer act. Start a new session from your MCP client when you want to try again.</p><div class="buttons"><a class="button secondary" href="/">Open connection guide</a></div></section>',
+    '<section class="error-page"><h1>Session ended</h1><p class="intro">Your connector token and session can no longer act. Start a new session from your MCP client when you want to try again.</p><div class="buttons"><a class="button secondary" href="/">Open connection guide</a></div></section>',
     200,
     new Headers({ "Set-Cookie": browserCookie("", 0) }),
   );

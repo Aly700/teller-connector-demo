@@ -14,8 +14,8 @@ test('successful account reads persist whitelisted observations in the same sess
   try {
     const registry = f.raw.prepare('SELECT accounts_json FROM sample_registry').get()!;
     const id = JSON.parse(String(registry.accounts_json)).operating;
-    const account = {id, account:'operating',currency:'CAD',status:'ACTIVE',ledgerBalanceMinor:12500,availableBalanceMinor:12300,version:2,createdAt:new Date(f.now-1000).toISOString(),sampleData:true,label:'Sample data',notice:'Sample data. No real money.',privateField:'NEVER STORE'};
-    await recordCall(f.db, f.props, 'get_sample_account', {account:'operating'}, {content:[{type:'text',text:'RAW PRIVATE TEXT'}],structuredContent:account}, Date.now());
+    const account = {id, account:'operating',currency:'CAD',status:'ACTIVE',ledgerBalanceMinor:12500,availableBalanceMinor:12300,version:2,createdAt:new Date(f.now-1000).toISOString(),sampleData:true,label:'Demo data',notice:'Demo data. No real money.',privateField:'NEVER STORE'};
+    await recordCall(f.db, f.props, 'get_account', {account:'operating'}, {content:[{type:'text',text:'RAW PRIVATE TEXT'}],structuredContent:account}, Date.now());
     const insights = await getSessionInsights(f.db, f.props);
     assert.deepEqual(insights.accounts[0].observations.map(p => [p.id,p.availableBalanceMinor,p.ledgerBalanceMinor]), [[id,12300,12500]]);
     assert.equal(insights.accounts[1].historyState,'empty');

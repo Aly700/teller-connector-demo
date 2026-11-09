@@ -1,6 +1,6 @@
 import { SAMPLE } from './sample.ts';
 export const SCOPES = ['sample:read', 'sample:request'];
-export const READ_TOOLS = ['list_sample_accounts', 'get_sample_account', 'get_sample_transfer'];
+export const READ_TOOLS = ['list_accounts', 'get_account', 'get_transfer'];
 export interface Config { epoch: string; expires_at: number; enabled: number; maintenance: number; tools_json: string; ip_salt: string }
 export interface SessionProps { visitorId: string; epoch: string }
 export interface Visitor { id: string; epoch: string; expires_at: number; revoked: number }

@@ -14,7 +14,7 @@ export const transferSchema = z.strictObject({
   decisionId: z.uuid().nullable(), approvalId: z.uuid().nullable(), createdAt: time,
   postedAt: time.nullable(), reversedAt: time.nullable(),
 }).refine(t => t.fromAccountId !== t.toAccountId && (t.state !== 'HELD' || t.approvalId !== null) && (t.state !== 'POSTED' || t.postedAt !== null));
-export class UpstreamError extends Error { constructor(public status: number,public upstreamStatus:number|null=status||null) { super('Sample upstream unavailable'); } }
+export class UpstreamError extends Error { constructor(public status: number,public upstreamStatus:number|null=status||null) { super('Upstream unavailable'); } }
 interface Options { fetcher?: (request: Request) => Promise<Response>; now?: () => number; sleep?: (ms: number) => Promise<void> }
 export class TellerClient {
   constructor(private origin: string, private secret: string, private epoch: string, private options: Options = {}) {

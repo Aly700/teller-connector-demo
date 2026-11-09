@@ -1,4 +1,4 @@
-// Run approved sample transfers after the shared live-seed baseline checks.
+// Run approved transfers after the shared live-seed baseline checks.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
@@ -16,8 +16,8 @@ async function call(s: Session, name: string, args: object) {
   return result.structuredContent;
 }
 async function prepare(s: Session, amountMinor = 125): Promise<Held> {
-  const list = await call(s, 'list_sample_accounts', {});
-  return call(s, 'request_sample_transfer', {
+  const list = await call(s, 'list_accounts', {});
+  return call(s, 'request_transfer', {
     fromAccount: 'operating', toAccount: 'reserve', amountMinor, currency: 'CAD',
     requestKey: list.requestSlots[0].requestKey,
   });
@@ -56,8 +56,8 @@ async function assertNoOverflow(page: Page) {
 test('drawer preserves queue context, isolates ownership, restores focus, and sends only after explicit approval', async () => {
   const s = await session(), foreign = await session();
   const held = await prepare(s);
-  const list = await call(s, 'list_sample_accounts', {});
-  const untouched: Held = await call(s, 'request_sample_transfer', {
+  const list = await call(s, 'list_accounts', {});
+  const untouched: Held = await call(s, 'request_transfer', {
     fromAccount: 'reserve', toAccount: 'operating', amountMinor: 275, currency: 'CAD',
     requestKey: list.requestSlots[1].requestKey,
   });
@@ -103,8 +103,9 @@ test('drawer preserves queue context, isolates ownership, restores focus, and se
     }), true, 'feedback appears above the native modal layer');
     assert.notEqual(await rowOf(page, untouched).getAttribute('data-selected'), 'true');
     assert.equal(new URL((await drawer.getByRole('link', { name: 'Open full page', exact: true }).getAttribute('href'))!, base).pathname, requestPath);
-    assert.match(await drawer.locator('.plain-words').innerText(), /\$1\.25 CAD from operating to reserve/);
-    assert.ok((await drawer.locator('.plain-words').innerText()).includes(held.holdId));
+    assert.match(await drawer.locator('.plain-words').innerText(), /\$1\.25 from Operating to Reserve/);
+    assert.equal(await drawer.getByRole('button', { name: 'Copy request ID', exact: true }).getAttribute('data-copy'), held.holdId);
+    assert.match(await drawer.locator('.plain-words small').innerText(), /Transfers need approval.*version 1/);
     await drawer.locator('summary').filter({ hasText: 'Why it was held' }).click();
     assert.deepEqual(await drawer.locator('[data-rule-state]').evaluateAll(elements => elements.map(element => element.getAttribute('data-rule-state'))), ['checked', 'checked', 'matched', 'skipped', 'skipped']);
     assert.equal(await drawer.locator(`form[action="${new URL(untouched.approvalUrl).pathname}"]`).count(), 0);
@@ -137,7 +138,7 @@ test('drawer preserves queue context, isolates ownership, restores focus, and se
 
     await trigger.click();
     await drawer.locator('.approval-review summary').waitFor();
-    const approve = drawer.getByRole('button', { name: 'Approve sample transfer', exact: true });
+    const approve = drawer.getByRole('button', { name: 'Approve transfer', exact: true });
     assert.equal(await approve.isVisible(), false);
     const csrf = await drawer.locator('input[name="csrf"]').inputValue();
     const bodyHash = await drawer.locator('input[name="bodyHash"]').inputValue();
@@ -164,7 +165,7 @@ test('drawer preserves queue context, isolates ownership, restores focus, and se
     assert.equal(writes.length, 1);
     assert.match(await drawer.locator('.plain-words').innerText(), /posted.*ledger/i);
     assert.equal(await drawer.locator('input[name="csrf"]').count(), 0);
-    assert.equal(await drawer.getByRole('button', { name: 'Approve sample transfer', exact: true }).count(), 0);
+    assert.equal(await drawer.getByRole('button', { name: 'Approve transfer', exact: true }).count(), 0);
     await page.keyboard.press('Escape');
     await drawer.waitFor({ state: 'hidden' });
     await assertFocused(trigger);
@@ -274,12 +275,12 @@ test('drawer errors remain recoverable and themes, phone layout, and reduced mot
     await auditTrigger.click();
     const eventDialog = page.getByRole('dialog', { name: 'Event details', exact: true });
     await eventDialog.getByRole('link', { name: 'Open request stream', exact: true }).waitFor();
-    assert.equal(await eventDialog.locator('.notice').getByText('Sample data. No real money.', { exact: true }).isVisible(), true);
+    assert.equal(await eventDialog.locator('.notice').getByText('Demo data. No real money.', { exact: true }).isVisible(), true);
     await eventDialog.getByRole('link', { name: 'Open request stream', exact: true }).click();
     await drawer.getByRole('heading', { name: 'In plain words', exact: true }).waitFor();
     await eventDialog.waitFor({ state: 'hidden' });
-    assert.equal(await drawer.locator('.notice').getByText('Sample data. No real money.', { exact: true }).isVisible(), true);
-    assert.equal(await page.getByText('Sample data. No real money.', { exact: true }).count(), 1);
+    assert.equal(await drawer.locator('.notice').getByText('Demo data. No real money.', { exact: true }).isVisible(), true);
+    assert.equal(await page.getByText('Demo data. No real money.', { exact: true }).count(), 1);
     await page.keyboard.press('Escape');
     await drawer.waitFor({ state: 'hidden' });
     await assertFocused(auditTrigger);
@@ -312,7 +313,7 @@ test('a failed decision response followed by a failed reload never claims the de
     await rowOf(page, held).getByRole('link', { name: held.reference, exact: true }).click();
     const drawer = drawerOf(page);
     await drawer.locator('.approval-review summary').click();
-    await drawer.getByRole('button', { name: 'Approve sample transfer', exact: true }).click();
+    await drawer.getByRole('button', { name: 'Approve transfer', exact: true }).click();
     await drawer.getByRole('alert').filter({ hasText: 'The decision may already be saved' }).waitFor();
     assert.equal(interceptedPosts, 1);
     assert.equal(await transferPosts(), before);
@@ -342,7 +343,7 @@ test('without JavaScript queue links retain full-page review and never bypass ap
     assert.equal(await drawerOf(page).isVisible(), false);
     assert.equal(await page.getByRole('heading', { name: 'In plain words', exact: true }).isVisible(), true);
     assert.equal(await page.locator('summary').filter({ hasText: 'Why it was held' }).isVisible(), true);
-    const approve = page.getByRole('button', { name: 'Approve sample transfer', exact: true });
+    const approve = page.getByRole('button', { name: 'Approve transfer', exact: true });
     assert.equal(await approve.isVisible(), false);
     await page.locator('.approval-review summary').click();
     assert.equal(await approve.isVisible(), true);
@@ -380,7 +381,7 @@ test('switching to Details during an approval refreshes that same drawer and que
     const drawer = drawerOf(page);
     await drawer.locator('.approval-review summary').click();
     const postStarted = page.waitForRequest(request => request.method() === 'POST' && new URL(request.url()).pathname === requestPath);
-    await drawer.getByRole('button', { name: 'Approve sample transfer', exact: true }).click();
+    await drawer.getByRole('button', { name: 'Approve transfer', exact: true }).click();
     await postStarted;
     await drawer.getByRole('navigation', { name: 'Request views' }).getByRole('link', { name: 'Details', exact: true }).click();
     await drawer.getByRole('heading', { name: 'Saved instruction', exact: true }).waitFor();

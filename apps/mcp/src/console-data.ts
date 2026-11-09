@@ -64,7 +64,7 @@ export async function consoleIndex(
     ...events.map((ev) => ({
       kind: "Event",
       title: eventTitle(ev),
-      detail: ev.tool ?? "Browser session",
+      detail: ev.tool ?? "Session",
       text: [
         ev.eventId,
         ev.holdId,

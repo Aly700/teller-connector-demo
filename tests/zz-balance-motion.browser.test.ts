@@ -14,11 +14,11 @@ test("approved balances retain their values and changes with or without motion",
     assert.ok(!response.result.isError);
     return response.result.structuredContent;
   };
-  const list = await call("list_sample_accounts", {});
+  const list = await call("list_accounts", {});
   const browser: Browser = await chromium.launch();
   try {
     for (const [slot, reduced] of [false, true].entries()) {
-      const held = await call("request_sample_transfer", {
+      const held = await call("request_transfer", {
         fromAccount: "operating",
         toAccount: "reserve",
         amountMinor: 125,
@@ -58,7 +58,7 @@ test("approved balances retain their values and changes with or without motion",
         );
       await page.locator(".approval-review summary").click();
       await page
-        .getByRole("button", { name: "Approve sample transfer", exact: true })
+        .getByRole("button", { name: "Approve transfer", exact: true })
         .click();
       await page
         .getByRole("heading", { name: "Posted in Teller", exact: true })

@@ -20,14 +20,14 @@ test("frozen corpus has the exact family, fault and post-hold allocations", () =
     {} as Record<string, number>,
   );
   assert.deepEqual(counts, {
-    "list_sample_accounts:read": 12,
-    "list_sample_accounts:refuse": 4,
-    "get_sample_account:read": 12,
-    "get_sample_account:refuse": 4,
-    "get_sample_transfer:read": 10,
-    "get_sample_transfer:refuse": 6,
-    "request_sample_transfer:refuse": 12,
-    "request_sample_transfer:hold": 20,
+    "list_accounts:read": 12,
+    "list_accounts:refuse": 4,
+    "get_account:read": 12,
+    "get_account:refuse": 4,
+    "get_transfer:read": 10,
+    "get_transfer:refuse": 6,
+    "request_transfer:refuse": 12,
+    "request_transfer:hold": 20,
   });
   assert.equal(cases.filter((c) => c.fault).length, 6);
   assert.deepEqual(
@@ -53,8 +53,8 @@ test("exact matching rejects types, extra keys, multiple tools, malformed and mi
     [{ type: "text", text: "no" }],
     [{ type: "text", text: '{"refusal":"X","extra":1}' }],
     [
-      { type: "tool_use", name: "get_sample_account", input: {} },
-      { type: "tool_use", name: "get_sample_account", input: {} },
+      { type: "tool_use", name: "get_account", input: {} },
+      { type: "tool_use", name: "get_account", input: {} },
     ],
   ])
     assert.equal(parseSelection(content).valid, false);

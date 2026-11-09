@@ -34,8 +34,8 @@ function provider(env: AuthEnv) {
       Response.json(
         {
           error: code,
-          error_description: "The sample connection could not be authorized.",
-          notice: "Sample data. No real money.",
+          error_description: "The connection could not be authorized.",
+          notice: "Demo data. No real money.",
         },
         { status, headers },
       ),
@@ -55,12 +55,12 @@ function provider(env: AuthEnv) {
         !["authorization_code", "refresh_token"].includes(grantType)
       )
         throw new OAuthError("invalid_grant", {
-          description: "Start a new sample session.",
+          description: "Start a new demo session.",
         });
       const remaining = Math.floor((visitor.expires_at - Date.now()) / 1000);
       if (remaining < 60)
         throw new OAuthError("invalid_grant", {
-          description: "Start a new sample session.",
+          description: "Start a new demo session.",
         });
       return {
         accessTokenTTL: Math.min(900, remaining),

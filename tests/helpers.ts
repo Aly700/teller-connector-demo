@@ -12,7 +12,7 @@ export function cookies(response: Response): string {
   return response.headers.getSetCookie().map(c => c.split(';')[0]).join('; ');
 }
 export async function register(redirect = 'http://localhost:9876/callback') {
-  const response = await fetch(base + '/oauth/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ client_name: 'Sample test client', redirect_uris: [redirect], token_endpoint_auth_method: 'none', grant_types: ['authorization_code', 'refresh_token'], response_types: ['code'] }) });
+  const response = await fetch(base + '/oauth/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ client_name: 'Console test client', redirect_uris: [redirect], token_endpoint_auth_method: 'none', grant_types: ['authorization_code', 'refresh_token'], response_types: ['code'] }) });
   assert.equal(response.status, 201);
   return { ...await response.json() as { client_id: string }, redirect };
 }

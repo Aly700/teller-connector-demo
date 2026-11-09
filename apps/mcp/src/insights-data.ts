@@ -17,7 +17,7 @@ const requestBodySchema = z.strictObject({
   fromAccountId: z.uuid(), toAccountId: z.uuid(),
   amountMinor: money.positive().max(10000), currency: z.literal('CAD'), initiatedBy: z.string(),
 });
-const accountRead = (name: string) => name === 'list_sample_accounts' || name === 'get_sample_account';
+const accountRead = (name: string) => name === 'list_accounts' || name === 'get_account';
 type AccountIdentities = z.infer<typeof identitiesSchema>;
 
 export type AccountObservation = z.infer<typeof observationSchema>;
@@ -68,8 +68,8 @@ export function extractAccountObservations(
 ): AccountObservation[] {
   const ids = identities(registry, props);
   if (!ids || result.isError || !accountRead(name) || !object(result.structuredContent)) return [];
-  const values = name === 'list_sample_accounts' ? result.structuredContent.accounts : [result.structuredContent];
-  if (!Array.isArray(values) || values.length !== (name === 'list_sample_accounts' ? 2 : 1)) return [];
+  const values = name === 'list_accounts' ? result.structuredContent.accounts : [result.structuredContent];
+  if (!Array.isArray(values) || values.length !== (name === 'list_accounts' ? 2 : 1)) return [];
   const observations: AccountObservation[] = [];
   for (const value of values) {
     if (!object(value)) return [];
@@ -111,7 +111,7 @@ function persistedObservations(row: AuditRow, event: Record<string, unknown>, id
   const occurredAt = event.occurredAt as string, time = Date.parse(occurredAt);
   if (!Number.isFinite(time) || time !== row.occurred_at || time > now) return null;
   const values = event.accountObservations;
-  if (!Array.isArray(values) || values.length !== (event.tool === 'list_sample_accounts' ? 2 : 1)) return null;
+  if (!Array.isArray(values) || values.length !== (event.tool === 'list_accounts' ? 2 : 1)) return null;
   const observations: ObservedBalance[] = [];
   for (const value of values) {
     const parsed = observationSchema.safeParse(value);

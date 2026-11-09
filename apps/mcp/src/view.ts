@@ -1,9 +1,10 @@
+import { ruleTitle } from './policy-display.ts';
 import { escapeHtml as e, icon } from "../../../packages/http.ts";
 import type { Hold } from "../../../packages/gate/holds.ts";
 export const states: Record<string, [string, string]> = {
   HELD: [
     "Waiting for your approval",
-    "Review the amount and accounts. Only this browser session can approve this request.",
+    "Review the amount and accounts. Only this session can approve this request.",
   ],
   DENIED: [
     "Rejected by you",
@@ -23,7 +24,7 @@ export const states: Record<string, [string, string]> = {
   ],
   POSTED: [
     "Posted in Teller",
-    "The sample transfer is recorded in Teller’s ledger.",
+    "The transfer is recorded in Teller’s ledger.",
   ],
   TELLER_HELD: [
     "Held by Teller",
@@ -31,7 +32,7 @@ export const states: Record<string, [string, string]> = {
   ],
   TELLER_DENIED: [
     "Denied by Teller",
-    "Teller declined the sample transfer under its own policy. It was not posted.",
+    "Teller declined the transfer under its own policy. It was not posted.",
   ],
   UPSTREAM_REJECTED: [
     "Teller rejected the request",
@@ -82,7 +83,7 @@ export function accountRoute(from: string, to: string) {
 }
 export function holdTable(holds: Hold[], empty = "No requests yet") {
   if (!holds.length)
-    return `<div class="empty">${icon("queue")}<h2>${empty}</h2><p>Request a sample transfer from your connected client. It will appear here for your review.</p><a class="button secondary" href="/guide">Open sample guide ${icon("arrow")}</a></div>`;
+    return `<div class="empty">${icon("queue")}<h2>${empty}</h2><p>Request a transfer from your connected client. It will appear here for your review.</p><a class="button secondary" href="/guide">Open guide ${icon("arrow")}</a></div>`;
   return `<table class="table"><caption class="sr-only">Transfer requests in this session</caption><thead><tr><th>Request</th><th class="route-col">Accounts</th><th class="status-col">Status</th><th class="amount-col numeric">Amount</th><th class="date-col">Requested</th><th class="arrow-cell"><span class="sr-only">Open</span></th></tr></thead><tbody>${holds
     .map((h) => {
       const a = JSON.parse(h.arguments_json);
@@ -105,7 +106,7 @@ export const eventNames: Record<string, string> = {
   STOPPED_BEFORE_SEND: "Stopped before sending",
   REPLAY_STOPPED_BEFORE_SEND: "Recovery stopped; earlier result uncertain",
   SESSION_REPLACED: "Session ended",
-  READ_OK: "Sample data read",
+  READ_OK: "Data read",
   TOOL_REFUSED: "Tool request refused",
   BROWSER_REFUSED: "Browser action refused",
   DUPLICATE_REQUEST: "Existing request returned",
@@ -130,13 +131,13 @@ export function timeline(h: Hold, events: any[]) {
       at: ev.occurredAt,
       description:
         ev.type === "HELD"
-          ? `Policy: ${h.policy_rule}`
+          ? `Policy: ${ruleTitle(h.policy_rule)}`
           : ev.type === "SEND_CLAIMED"
             ? "Outbound attempt claimed. Receipt is not yet confirmed."
             : ev.type === "RESPONSE_SAVED"
               ? "Teller returned a matching transfer record."
               : ev.type === "APPROVED"
-                ? "This browser approved the saved amount and accounts."
+                ? "You approved the saved amount and accounts."
                 : ev.type === "RESULT_SAVED"
                   ? "Current state read back from Teller."
                   : "",

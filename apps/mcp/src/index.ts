@@ -169,13 +169,13 @@ async function handleRequest(
       return request.method === "GET"
         ? pageError(
             "Page not found",
-            "This address does not point to a sample page. Return to your queue or open the sample guide.",
+            "This address does not point to a page. Return to your queue or open the guide.",
             404,
           )
         : safeHttp("NOT_FOUND", 404);
     const response = await resource(env, async (req, props, scopes) => {
       const server = new Server(
-        { name: "teller-sample", version: "0.1.0" },
+        { name: "teller-connector", version: "0.1.0" },
         { capabilities: { tools: {} } },
       );
       server.setRequestHandler(ListToolsRequestSchema, async () => ({ tools }));
@@ -185,13 +185,13 @@ async function handleRequest(
           if (!(await consumeTool(env.DB, props, call.params.name)))
             return failure(
               "RATE_LIMIT",
-              "The sample call limit has been reached. Try again later.",
+              "The call limit has been reached. Try again later.",
             );
           if (!tools.some((t) => t.name === call.params.name)) {
             await securityEvent(env.DB, "UNKNOWN_TOOL", props);
             return failure(
               "UNKNOWN_TOOL",
-              "Choose one of the four sample tools.",
+              "Choose one of the four tools.",
             );
           }
           const settings = await config(env.DB);
@@ -321,7 +321,7 @@ async function handleRequest(
     return new URL(request.url).pathname.startsWith("/mcp")
       ? safeHttp("DEMO_UNAVAILABLE", 503)
       : pageError(
-          "Sample unavailable",
+          "Service unavailable",
           "The demo is unavailable. Try again later.",
           503,
         );

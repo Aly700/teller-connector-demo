@@ -125,14 +125,14 @@ export async function reportPage(
   if (json)
     return Response.json(
       {
-        notice: "Sample data. No real money.",
+        notice: "Demo data. No real money.",
         latestAttempt: rows.results[0]?.started_at ?? null,
         runs,
       },
       {
         headers: {
           "Cache-Control": "no-store",
-          "Content-Disposition": 'attachment; filename="sample-eval.json"',
+          "Content-Disposition": 'attachment; filename="evaluation.json"',
         },
       },
     );

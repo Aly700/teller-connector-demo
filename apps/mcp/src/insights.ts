@@ -1,3 +1,4 @@
+import { ruleTitle } from './policy-display.ts';
 import { escapeHtml as e, icon } from '../../../packages/http.ts';
 import { money, amount, time } from './view.ts';
 import type { Hold } from '../../../packages/gate/holds.ts';
@@ -6,11 +7,11 @@ import { requestExplanation } from './request-explanation.ts';
 
 export function plainWords(h: Hold) {
   const explanation = requestExplanation(h);
-  return `<section class="plain-words"><div class="explanation-label"><span class="icon-tile">${icon('help')}</span><h2>In plain words</h2></div><p>${e(explanation.paragraph)}</p><small>From the saved request ${e(h.reference)} (${e(h.id)}) and policy ${e(h.policy_version)}.</small></section>`;
+  return `<section class="plain-words"><div class="explanation-label"><span class="icon-tile">${icon('help')}</span><h2>In plain words</h2></div><p>${e(explanation.paragraph)}</p><small>${e(explanation.source)}</small></section>`;
 }
 export function policyTrace(h: Hold) {
   const explanation = requestExplanation(h);
-  return `<details class="policy-trace"><summary><span>${icon('lock')}Why it was held</span><span>${explanation.traceAvailable ? 'Recorded rule checks' : 'History unavailable'}</span></summary>${explanation.traceAvailable ? `<ol>${explanation.trace.map((step) => `<li data-rule-state="${step.status}"><span class="rule-check" aria-hidden="true">${step.status === 'matched' ? icon('check') : step.status === 'checked' ? icon('check') : '—'}</span><div><div class="rule-title"><code>${e(step.rule)}</code><span class="rule-state">${step.status}</span></div><p>${e(step.reason)}</p></div></li>`).join('')}</ol><p class="chart-takeaway">The first matching rule held the request. Later rules were not evaluated.</p>` : `<p class="chart-takeaway">${e(explanation.traceUnavailableReason ?? 'This request has no usable saved rule history.')}</p>`}</details>`;
+  return `<details class="policy-trace"><summary><span>${icon('lock')}Why it was held</span><span>${explanation.traceAvailable ? 'Recorded rule checks' : 'History unavailable'}</span></summary>${explanation.traceAvailable ? `<ol>${explanation.trace.map((step) => `<li data-rule-state="${step.status}"><span class="rule-check" aria-hidden="true">${step.status === 'matched' ? icon('check') : step.status === 'checked' ? icon('check') : '—'}</span><div><div class="rule-title"><strong>${e(ruleTitle(step.rule))}</strong><span class="rule-state">${step.status}</span></div>${step.status === 'skipped' ? '' : `<p>${e(step.reason)}</p>`}</div></li>`).join('')}</ol><p class="chart-takeaway">The first matching rule held the request. Later rules were not evaluated.</p>` : `<p class="chart-takeaway">${e(explanation.traceUnavailableReason ?? 'This request has no usable saved rule history.')}</p>`}</details>`;
 }
 export function ring(value: number, limit: number, key: string, label: string, tone = 'blue') {
   const percent = limit > 0 ? Math.min(100, Math.max(0, value / limit * 100)) : 0;

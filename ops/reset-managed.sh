@@ -26,7 +26,7 @@ done
 for ((i=0;i<90;i++)); do
   if /usr/bin/sudo -u "$SERVICE_USER" -H /bin/bash "$ROOT/ops/check.sh" >/dev/null 2>&1; then
     as_service_user activate
-    echo 'Managed reset complete. New epoch active. Sample data. No real money.'
+    echo 'Managed reset complete. New epoch active. Demo data. No real money.'
     exit 0
   fi
   sleep 1

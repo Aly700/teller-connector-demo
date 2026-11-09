@@ -20,5 +20,5 @@ const server=createServer(async(req,res)=>{
     });res.writeHead(response.status,Object.fromEntries(response.headers));res.end(await response.text());
   }catch{res.writeHead(503);res.end(JSON.stringify({...SAMPLE,code:'ORIGIN_UNAVAILABLE'}));}
 });
-server.listen(18081,'127.0.0.1',async()=>{await writeFile('.data/origin.pid',String(process.pid),{mode:0o600});console.log('Signed sample origin listening on 127.0.0.1:18081. Sample data. No real money.');});
+server.listen(18081,'127.0.0.1',async()=>{await writeFile('.data/origin.pid',String(process.pid),{mode:0o600});console.log('Signed sample origin listening on 127.0.0.1:18081. Demo data. No real money.');});
 for(const signal of ['SIGTERM','SIGINT'] as const)process.on(signal,()=>{closing=true;server.close(()=>process.exit(0));});

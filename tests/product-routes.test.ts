@@ -59,7 +59,7 @@ test("every product route requires the current browser session, not a bearer or 
           section,
         );
         assert.equal(response.status, 401, section);
-        assert.match(await response.text(), /Open your sample session/);
+        assert.match(await response.text(), /Open your session/);
         assert.equal(response.headers.get("Cache-Control"), "no-store");
       }
     }
@@ -99,7 +99,7 @@ test("settings and developer routes have working secondary navigation and honest
       const html = await response.text();
       assert.equal(response.status, 200, section);
       assert.equal(
-        (html.match(/Sample data\. No real money\./g) ?? []).length,
+        (html.match(/Demo data\. No real money\./g) ?? []).length,
         1,
       );
       const links = section.startsWith("settings")
@@ -238,7 +238,7 @@ test("policy match counts deduplicate held request events while counting each re
     for (let i = 0; i < 3; i++)
       await saveEvent(f.db, {
         ...emptyEvent(f.props, "READ_OK"),
-        tool: "list_sample_accounts",
+        tool: "list_accounts",
         policyRule: "sample-read",
         policyEffect: "ALLOW",
       });
@@ -291,7 +291,7 @@ test("session search finds resource IDs, request keys and events without exposin
       .run(...Object.values(foreign));
     const event = {
       ...emptyEvent(f.props, "READ_OK"),
-      tool: "get_sample_account",
+      tool: "get_account",
     };
     await saveEvent(f.db, event);
     await saveEvent(f.db, {
@@ -406,7 +406,7 @@ test("request views are server rendered, retain saved input, and expose approval
           html.includes(
             escapeHtml(
               JSON.stringify(
-                { name: "request_sample_transfer", arguments: f.input },
+                { name: "request_transfer", arguments: f.input },
                 null,
                 2,
               ),

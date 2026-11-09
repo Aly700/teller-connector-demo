@@ -32,7 +32,7 @@ export function resource(
     resourceMetadata: {
       resource: env.PUBLIC_ORIGIN + "/mcp",
       authorization_servers: [env.PUBLIC_ORIGIN],
-      resource_name: "Sample data. No real money.",
+      resource_name: "Demo data. No real money.",
     },
     requiredScopes: ["sample:read", "sample:request"],
     validateToken: (env) => env.AUTH_SERVER.validateToken,
@@ -50,7 +50,7 @@ export function resource(
           } catch {}
           if (
             payload?.method === "tools/call" &&
-            payload.params?.name === "request_sample_transfer"
+            payload.params?.name === "request_transfer"
           )
             return insufficientScope(ctx.auth, ["sample:request"]);
         }

@@ -631,7 +631,7 @@
         if (!response.ok)
           throw new Error(
             response.status === 401
-              ? "Start a sample session to search."
+              ? "Start a demo session to search."
               : "Search is unavailable. Try again.",
           );
         applyIndex(await response.json());
@@ -983,7 +983,7 @@
         stopped = true;
         status("Session ended · reconnect");
         announce(
-          "Your sample session ended. Start a new session from your client.",
+          "Your session ended. Start a new session from your client.",
         );
         return;
       }

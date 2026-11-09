@@ -8,5 +8,5 @@ if(pool.expiresAt<=Date.now())throw new Error('Missed reset. Origin must remain 
 const response=await fetch(await signRequest('http://127.0.0.1:18081/v1/pools/001/accounts/operating',process.env.ORIGIN_SIGNING_SECRET,pool.epoch),{signal:AbortSignal.timeout(3000)});
 if(!response.ok)throw new Error('Signed origin not ready');
 const account=await response.json();if(account.id!==pool.pools[0].accounts.operating)throw new Error('Epoch mismatch');
-console.log('PASS current epoch, signed origin and Teller account. Sample data. No real money.');
+console.log('PASS current epoch, signed origin and Teller account. Demo data. No real money.');
 JS

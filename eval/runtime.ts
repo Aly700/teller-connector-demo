@@ -37,7 +37,7 @@ export function fixtureRuntime(live=false):Runtime {
    const client=new TellerClient('http://127.0.0.1:18081',process.env.ORIGIN_SIGNING_SECRET??'fixture-secret'.repeat(4),f.props.epoch,{sleep:async()=>{},fetcher:c.fault?async()=>new Response(null,{status:c.fault!.status}):live?fetch:mockedRead});
    if(c.kind==='refuse'){
     const probe=c.probe!;let code:string;
-    if(probe.tool==='request_sample_transfer'){try{await createHold(f.db,f.props,probe.arguments);code='UNEXPECTED_HOLD';}catch(e){code=(e as Error).message;}}
+    if(probe.tool==='request_transfer'){try{await createHold(f.db,f.props,probe.arguments);code='UNEXPECTED_HOLD';}catch(e){code=(e as Error).message;}}
     else {const r=await readTool(probe.tool,probe.arguments,registry,client);code=String(r.structuredContent?.code);}
     assert.equal(f.raw.prepare('SELECT COUNT(*) n FROM holds').get()!.n,0);
     return {decision:'REFUSE',code:(c.expected.selection as {refusal:string}).refusal,probeCode:code,preApprovalPosts:posts};
@@ -46,14 +46,14 @@ export function fixtureRuntime(live=false):Runtime {
    if(c.kind==='read'){
     const captured:Record<string,any>={};
     if(!c.fault){
-     if(selected.tool!=='get_sample_transfer')for(const alias of selected.tool==='list_sample_accounts'?['operating','reserve']:[String(selected.arguments.account)])captured[alias]=await client.get(`/v1/pools/${registry.pool_id}/accounts/${alias}`,accountSchema);
+     if(selected.tool!=='get_transfer')for(const alias of selected.tool==='list_accounts'?['operating','reserve']:[String(selected.arguments.account)])captured[alias]=await client.get(`/v1/pools/${registry.pool_id}/accounts/${alias}`,accountSchema);
      else captured.transfer=await client.get(`/v1/pools/${registry.pool_id}/transfers/${selected.arguments.reference}`,transferSchema);
     }
     const r=await readTool(selected.tool,selected.arguments,registry,client),s=r.structuredContent as any;
     assert.equal(s.sampleData,true);assert.equal(s.notice,SAMPLE.notice);
     if(r.isError)return {decision:'ALLOW',code:s.code,preApprovalPosts:posts};
-    if(selected.tool==='list_sample_accounts'){for(const a of s.accounts)for(const k of ['id','createdAt','version'])assert.equal(a[k],captured[a.account][k]);assert.deepEqual(s.requestSlots.map((v:any)=>({reference:v.reference,requestKey:v.requestKey})),c.context.requestSlots);return {decision:'ALLOW',accounts:s.accounts.map((a:any)=>({account:a.account,ledgerBalanceMinor:a.ledgerBalanceMinor,availableBalanceMinor:a.availableBalanceMinor})),slots:s.requestSlots.length,preApprovalPosts:posts};}
-    if(selected.tool==='get_sample_account'){for(const k of ['id','createdAt','version'])assert.equal(s[k],captured[s.account][k]);return {decision:'ALLOW',account:s.account,ledgerBalanceMinor:s.ledgerBalanceMinor,availableBalanceMinor:s.availableBalanceMinor,preApprovalPosts:posts};}
+    if(selected.tool==='list_accounts'){for(const a of s.accounts)for(const k of ['id','createdAt','version'])assert.equal(a[k],captured[a.account][k]);assert.deepEqual(s.requestSlots.map((v:any)=>({reference:v.reference,requestKey:v.requestKey})),c.context.requestSlots);return {decision:'ALLOW',accounts:s.accounts.map((a:any)=>({account:a.account,ledgerBalanceMinor:a.ledgerBalanceMinor,availableBalanceMinor:a.availableBalanceMinor})),slots:s.requestSlots.length,preApprovalPosts:posts};}
+    if(selected.tool==='get_account'){for(const k of ['id','createdAt','version'])assert.equal(s[k],captured[s.account][k]);return {decision:'ALLOW',account:s.account,ledgerBalanceMinor:s.ledgerBalanceMinor,availableBalanceMinor:s.availableBalanceMinor,preApprovalPosts:posts};}
     for(const k of ['id','createdAt','postedAt','reversedAt','approvalId','decisionId'])assert.equal(s[k],captured.transfer[k]);
     return {decision:'ALLOW',reference:s.reference,state:s.state,status:s.status,amountMinor:s.amountMinor,preApprovalPosts:posts};
    }

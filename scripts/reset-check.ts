@@ -7,8 +7,8 @@ import { signRequest } from '../packages/signing.ts';
 const s = await session();
 const old = JSON.parse(await readFile('.data/pool.json', 'utf8'));
 const call=async(name:string,args:object)=>(await (await mcp(s.tokens.access_token,'tools/call',{name,arguments:args})).json() as any).result.structuredContent;
-const list=await call('list_sample_accounts',{});
-const hold=await call('request_sample_transfer',{fromAccount:'operating',toAccount:'reserve',amountMinor:37,currency:'CAD',requestKey:list.requestSlots[0].requestKey});
+const list=await call('list_accounts',{});
+const hold=await call('request_transfer',{fromAccount:'operating',toAccount:'reserve',amountMinor:37,currency:'CAD',requestKey:list.requestSlots[0].requestKey});
 const details=await decisionForm(hold.approvalUrl,s.cookie);
 const pg=process.env.PG_BIN??'/opt/homebrew/opt/postgresql@16/bin';
 const pgEnv={...process.env,PGPASSWORD:process.env.DB_PASSWORD};
@@ -40,4 +40,4 @@ assert.equal(refresh.status, 401); // Reset also removes the DCR client from KV.
 const request = await signRequest('http://127.0.0.1:18081/v1/pools/001/accounts/operating', process.env.ORIGIN_SIGNING_SECRET!, old.epoch);
 assert.equal((await fetch(request)).status, 403);
 assert.equal((await fetch('http://127.0.0.1:18080/accounts/' + old.pools[0].accounts.operating, { headers: { 'X-API-Key': process.env.TELLER_API_KEY! } })).status, 404);
-console.log('PASS repeatable reset: epoch rotated, old token/cookie/refresh/signature refused, old Teller account absent. Sample data. No real money.');
+console.log('PASS repeatable reset: epoch rotated, old token/cookie/refresh/signature refused, old Teller account absent. Demo data. No real money.');

@@ -29,7 +29,7 @@ test("every console page has job navigation, workspace search and breadcrumbs", 
     "Breadcrumb",
   ])
     assert.ok(html.includes(label), label);
-  assert.equal((html.match(/Sample data\. No real money\./g) || []).length, 1);
+  assert.equal((html.match(/Demo data\. No real money\./g) || []).length, 1);
   assert.ok(html.includes('aria-current="page"'));
 });
 
@@ -47,10 +47,10 @@ test("policy catalog is the exact ordered first-match gate including default den
     ],
   );
   for (const [tool, enabled, allowed, currentEpoch, expected] of [
-    ["request_sample_transfer", false, true, true, "disabled-or-expired"],
-    ["request_sample_transfer", true, false, true, "disallowed-input"],
-    ["request_sample_transfer", true, true, true, "browser-approval"],
-    ["get_sample_account", true, true, true, "sample-read"],
+    ["request_transfer", false, true, true, "disabled-or-expired"],
+    ["request_transfer", true, false, true, "disallowed-input"],
+    ["request_transfer", true, true, true, "browser-approval"],
+    ["get_account", true, true, true, "sample-read"],
     ["unknown", true, true, true, "default-deny"],
   ] as const)
     assert.equal(

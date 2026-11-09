@@ -1,3 +1,4 @@
+import { ruleTitle } from './policy-display.ts';
 import {
   browserSession,
   hash,
@@ -123,7 +124,7 @@ export async function recordCall(
       replayId: hold.replay_count ? hold.attempt_id : null,
       tellerTransferId: hold.teller_id,
     });
-  if (!result.isError && ["list_sample_accounts", "get_sample_account"].includes(name)) {
+  if (!result.isError && ["list_accounts", "get_account"].includes(name)) {
     const registry = await db.prepare("SELECT * FROM sample_registry WHERE visitor_id=? AND epoch=?")
       .bind(props.visitorId, props.epoch).first<Registry>();
     const observations = extractAccountObservations(name, result, registry, props);
@@ -244,7 +245,7 @@ export async function auditExport(
   return new Response(stream, {
     headers: {
       "Content-Type": "application/x-ndjson; charset=utf-8",
-      "Content-Disposition": 'attachment; filename="sample-audit.jsonl"',
+      "Content-Disposition": 'attachment; filename="audit.jsonl"',
       "Cache-Control": "no-store",
       "X-Content-Type-Options": "nosniff",
     },
@@ -265,7 +266,7 @@ export async function auditPage(
     );
   if (!response.ok)
     return page(
-      '<section class="error-page"><h1>Open your sample session</h1><p class="intro">The audit belongs to the browser where you started this connection.</p><div class="buttons"><a class="button secondary" href="/queue">Return to your queue</a></div></section>',
+      '<section class="error-page"><h1>Open your session</h1><p class="intro">The audit belongs to the browser where you started this connection.</p><div class="buttons"><a class="button secondary" href="/queue">Return to your queue</a></div></section>',
       response.status,
     );
   const events = (await response.text())
@@ -316,13 +317,13 @@ export async function auditPage(
         ? `<table class="table audit-table"><caption class="sr-only">Session audit events</caption><thead><tr><th>Time</th><th>Event</th><th>Tool / request</th><th>State</th><th>Event ID</th></tr></thead><tbody>${shown
             .map((ev) => {
               const json = JSON.stringify(ev, null, 2).replaceAll(
-                "Sample data. No real money.",
-                "Sample data. No real money\\u002e",
+                "Demo data. No real money.",
+                "Demo data. No real money\\u002e",
               );
-              return `<tr tabindex="0" data-table-row data-event="${e(ev.type)}" data-search="${e([ev.eventId, ev.holdId, ev.requestKey, ev.policyRule, ev.tellerTransferId].join(" "))}"><td data-label="Time">${time(ev.occurredAt, true, true)}</td><td data-label="Event"><details class="event-detail" data-event-id="${e(ev.eventId)}"${selected === ev.eventId ? " open" : ""}><summary>${e(eventTitle(ev))}</summary><div class="event-panel"><div class="panel-head"><div><span class="drawer-breadcrumb">Audit trail / ${e(ev.eventId.slice(0, 8))}</span><h2>${e(eventTitle(ev))}</h2></div><button class="secondary icon-button" type="button" data-panel-close aria-label="Close event details">×</button></div><div class="panel-body">${copyValue(ev.eventId, "event ID")}${ev.holdId ? `<a class="button" data-open-request href="/queue/${e(ev.holdId)}">Open request stream</a>` : ""}<dl class="event-facts"><div><dt>Recorded</dt><dd>${time(ev.occurredAt)}</dd></div><div><dt>State</dt><dd>${ev.holdState ? badge(ev.holdState) : "Recorded event"}</dd></div><div><dt>Tool</dt><dd>${ev.tool ? `<code>${e(ev.tool)}</code>` : "Browser session"}</dd></div>${ev.policyRule ? `<div><dt>Policy rule</dt><dd><code>${e(ev.policyRule)}</code></dd></div>` : ""}${ev.requestKey ? `<div><dt>Request key</dt><dd>${copyValue(ev.requestKey, "event request key")}</dd></div>` : ""}</dl><div class="event-raw"><button class="secondary" type="button" data-event-json hidden aria-expanded="true">Hide full event JSON</button><pre>${e(json)}</pre></div><a class="button secondary" href="${e(filterUrl(view ?? "all"))}">Back to audit trail</a></div></div></details></td><td data-label="Tool / request">${references.has(ev.holdId) ? `<a href="/queue/${e(ev.holdId)}">${e(references.get(ev.holdId)!)}</a>` : `<span class="audit-tool">${e(ev.tool ?? "Browser session")}</span>`}${ev.policyRule ? `<small>${e(ev.policyRule)}</small>` : ""}</td><td data-label="State">${ev.holdState ? badge(ev.holdState) : '<span class="muted">—</span>'}</td><td data-label="Event ID"><code>${e(ev.eventId.slice(0, 8))}</code><button class="secondary copy-button" type="button" data-copy="${e(ev.eventId)}" aria-label="Copy event ${e(ev.eventId.slice(0, 8))}">⧉</button></td></tr>`;
+              return `<tr tabindex="0" data-table-row data-event="${e(ev.type)}" data-search="${e([ev.eventId, ev.holdId, ev.requestKey, ev.policyRule, ev.tellerTransferId].join(" "))}"><td data-label="Time">${time(ev.occurredAt, true, true)}</td><td data-label="Event"><details class="event-detail" data-event-id="${e(ev.eventId)}"${selected === ev.eventId ? " open" : ""}><summary>${e(eventTitle(ev))}</summary><div class="event-panel"><div class="panel-head"><div><span class="drawer-breadcrumb">Audit trail / ${e(ev.eventId.slice(0, 8))}</span><h2>${e(eventTitle(ev))}</h2></div><button class="secondary icon-button" type="button" data-panel-close aria-label="Close event details">×</button></div><div class="panel-body">${copyValue(ev.eventId, "event ID")}${ev.holdId ? `<a class="button" data-open-request href="/queue/${e(ev.holdId)}">Open request stream</a>` : ""}<dl class="event-facts"><div><dt>Recorded</dt><dd>${time(ev.occurredAt)}</dd></div><div><dt>State</dt><dd>${ev.holdState ? badge(ev.holdState) : "Recorded event"}</dd></div><div><dt>Tool</dt><dd>${ev.tool ? `<code>${e(ev.tool)}</code>` : "Session"}</dd></div>${ev.policyRule ? `<div><dt>Policy rule</dt><dd>${e(ruleTitle(ev.policyRule))}</dd></div>` : ""}${ev.requestKey ? `<div><dt>Request key</dt><dd>${copyValue(ev.requestKey, "event request key")}</dd></div>` : ""}</dl><div class="event-raw"><button class="secondary" type="button" data-event-json hidden aria-expanded="true">Hide full event JSON</button><pre>${e(json)}</pre></div><a class="button secondary" href="${e(filterUrl(view ?? "all"))}">Back to audit trail</a></div></div></details></td><td data-label="Tool / request">${references.has(ev.holdId) ? `<a href="/queue/${e(ev.holdId)}">${e(references.get(ev.holdId)!)}</a>` : `<span class="audit-tool">${e(ev.tool ?? "Session")}</span>`}${ev.policyRule ? `<small>${e(ruleTitle(ev.policyRule))}</small>` : ""}</td><td data-label="State">${ev.holdState ? badge(ev.holdState) : '<span class="muted">—</span>'}</td><td data-label="Event ID"><code>${e(ev.eventId.slice(0, 8))}</code><button class="secondary copy-button" type="button" data-copy="${e(ev.eventId)}" aria-label="Copy event ${e(ev.eventId.slice(0, 8))}">⧉</button></td></tr>`;
             })
             .join("")}</tbody></table>`
-        : `<div class="empty"><h2>${view ? "No events in this view" : "No recorded activity yet"}</h2><p>Read an account or request a transfer from your connected client to begin this session’s history.</p><a href="/guide">Open the sample guide</a></div>`
+        : `<div class="empty"><h2>${view ? "No events in this view" : "No recorded activity yet"}</h2><p>Read an account or request a transfer from your connected client to begin this session’s history.</p><a href="/guide">Open the guide</a></div>`
     }<p class="filter-empty empty" hidden>No events match these filters.</p>${pagination}<div class="session-note">This history is not claimed to be tamper-proof. The export includes the full selected period.</div></section><dialog class="event-dialog" aria-label="Event details"></dialog>`,
     200,
     new Headers(),

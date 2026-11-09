@@ -2,7 +2,7 @@
 source "$(dirname "$0")/env.sh"
 [[ "$(node -p 'process.versions.node.split(".")[0]')" == 26 ]] || { echo 'Node 26 required; set NODE_BIN.'; exit 1; }
 [[ ! -f .data/ops-enabled ]] || { echo 'Use a separate checkout for CI.'; exit 1; }
-echo 'Sample data. No real money. Connector CI uses local services only.'
+echo 'Demo data. No real money. Connector CI uses local services only.'
 npm ci
 scripts/stop.sh
 trap 'scripts/stop.sh' EXIT

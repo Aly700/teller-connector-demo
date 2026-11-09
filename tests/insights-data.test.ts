@@ -16,13 +16,13 @@ function registry(f: Fixture) {
   return f.raw.prepare('SELECT * FROM sample_registry').get() as unknown as Registry;
 }
 function account(f: Fixture, alias: 'operating' | 'reserve' = 'operating', balance = 12345) {
-  return { id: JSON.parse(registry(f).accounts_json)[alias], account: alias, currency: 'CAD', status: 'ACTIVE', ledgerBalanceMinor: balance, availableBalanceMinor: balance - 100, version: 1, createdAt: new Date(f.now - 60000).toISOString(), sampleData: true, label: 'Sample data', notice: 'Sample data. No real money.' };
+  return { id: JSON.parse(registry(f).accounts_json)[alias], account: alias, currency: 'CAD', status: 'ACTIVE', ledgerBalanceMinor: balance, availableBalanceMinor: balance - 100, version: 1, createdAt: new Date(f.now - 60000).toISOString(), sampleData: true, label: 'Demo data', notice: 'Demo data. No real money.' };
 }
 function result(data: Record<string, unknown>): CallToolResult {
   return { content: [{ type: 'text', text: 'UNTRUSTED RAW CONTENT' }], structuredContent: data };
 }
 function event(f: Fixture, observations?: unknown, overrides: Record<string, unknown> = {}) {
-  const value = { eventId: crypto.randomUUID(), occurredAt: new Date(f.now).toISOString(), visitorId: f.props.visitorId, epoch: f.props.epoch, type: 'READ_OK', tool: 'get_sample_account', ...(observations === undefined ? {} : { accountObservations: observations }), ...overrides };
+  const value = { eventId: crypto.randomUUID(), occurredAt: new Date(f.now).toISOString(), visitorId: f.props.visitorId, epoch: f.props.epoch, type: 'READ_OK', tool: 'get_account', ...(observations === undefined ? {} : { accountObservations: observations }), ...overrides };
   f.raw.prepare('INSERT INTO audit_events(id,occurred_at,visitor_id,epoch,tool,code,event_json) VALUES(?,?,?,?,?,?,?)').run(value.eventId, Date.parse(String(value.occurredAt)) || f.now, f.props.visitorId, f.props.epoch, value.tool, value.type, JSON.stringify(value));
   return value;
 }
@@ -42,26 +42,26 @@ function replaceHold(f: Fixture, h: Hold, changes: Partial<Hold>) {
 
 test('account extraction stores only validated account snapshots from matching registry reads', async () => {
   const { extractAccountObservations } = await helpers(), f = await fixture(), data = account(f);
-  assert.deepEqual(extractAccountObservations('get_sample_account', result({ ...data, secret: 'DO NOT SAVE' }), registry(f), f.props), [{ account: 'operating', id: data.id, currency: 'CAD', ledgerBalanceMinor: 12345, availableBalanceMinor: 12245, version: 1 }]);
-  const both = extractAccountObservations('list_sample_accounts', result({ accounts: [data, account(f, 'reserve')] }), registry(f), f.props);
+  assert.deepEqual(extractAccountObservations('get_account', result({ ...data, secret: 'DO NOT SAVE' }), registry(f), f.props), [{ account: 'operating', id: data.id, currency: 'CAD', ledgerBalanceMinor: 12345, availableBalanceMinor: 12245, version: 1 }]);
+  const both = extractAccountObservations('list_accounts', result({ accounts: [data, account(f, 'reserve')] }), registry(f), f.props);
   assert.deepEqual(both.map(a => a.account), ['operating', 'reserve']);
-  for (const name of ['get_sample_transfer', 'request_sample_transfer', 'unknown']) assert.deepEqual(extractAccountObservations(name, result(data), registry(f), f.props), []);
-  assert.deepEqual(extractAccountObservations('get_sample_account', { ...result(data), isError: true }, registry(f), f.props), []);
+  for (const name of ['get_transfer', 'request_transfer', 'unknown']) assert.deepEqual(extractAccountObservations(name, result(data), registry(f), f.props), []);
+  assert.deepEqual(extractAccountObservations('get_account', { ...result(data), isError: true }, registry(f), f.props), []);
 });
 
 test('account extraction rejects unsafe money, malformed accounts and foreign identity', async () => {
   const { extractAccountObservations } = await helpers(), f = await fixture(), data = account(f), r = registry(f);
   const bad = [ { availableBalanceMinor: Number.MAX_SAFE_INTEGER + 1 }, { ledgerBalanceMinor: -1 }, { availableBalanceMinor: 1.25 }, { availableBalanceMinor: 50000 }, { currency: 'USD' }, { version: -1 }, { id: crypto.randomUUID() }, { account: 'private' }, { createdAt: 'bad' }, { status: 'PRIVATE' } ];
-  for (const change of bad) assert.deepEqual(extractAccountObservations('get_sample_account', result({ ...data, ...change }), r, f.props), []);
-  for (const change of [{ visitor_id: 'someone-else' }, { epoch: crypto.randomUUID() }, { accounts_json: '{' }, { accounts_json: JSON.stringify({ operating: data.id, reserve: data.id }) }]) assert.deepEqual(extractAccountObservations('get_sample_account', result(data), { ...r, ...change }, f.props), []);
-  assert.deepEqual(extractAccountObservations('list_sample_accounts', result({ accounts: [data, data] }), r, f.props), []);
-  assert.deepEqual(extractAccountObservations('list_sample_accounts', result({ accounts: [data, { ...account(f, 'reserve'), id: crypto.randomUUID() }] }), r, f.props), []);
+  for (const change of bad) assert.deepEqual(extractAccountObservations('get_account', result({ ...data, ...change }), r, f.props), []);
+  for (const change of [{ visitor_id: 'someone-else' }, { epoch: crypto.randomUUID() }, { accounts_json: '{' }, { accounts_json: JSON.stringify({ operating: data.id, reserve: data.id }) }]) assert.deepEqual(extractAccountObservations('get_account', result(data), { ...r, ...change }, f.props), []);
+  assert.deepEqual(extractAccountObservations('list_accounts', result({ accounts: [data, data] }), r, f.props), []);
+  assert.deepEqual(extractAccountObservations('list_accounts', result({ accounts: [data, { ...account(f, 'reserve'), id: crypto.randomUUID() }] }), r, f.props), []);
 });
 
 test('old and empty sessions have no invented history, including account creation timestamps', async () => {
   const { getSessionInsights } = await helpers(), f = await fixture();
   event(f);
-  f.raw.prepare('INSERT INTO audit_events(id,occurred_at,visitor_id,epoch,tool,code) VALUES(?,?,?,?,?,?)').run(crypto.randomUUID(), f.now, f.props.visitorId, f.props.epoch, 'get_sample_account', 'READ_OK');
+  f.raw.prepare('INSERT INTO audit_events(id,occurred_at,visitor_id,epoch,tool,code) VALUES(?,?,?,?,?,?)').run(crypto.randomUUID(), f.now, f.props.visitorId, f.props.epoch, 'get_account', 'READ_OK');
   const data = await getSessionInsights(f.db, f.props, f.now + 1000);
   assert.equal(data.sources.legacyReadEvents, 2);
   assert.equal(data.sources.observedEvents, 0);
@@ -73,13 +73,13 @@ test('old and empty sessions have no invented history, including account creatio
 
 test('one and multiple observations retain exactly their persisted times and balances', async () => {
   const { extractAccountObservations, getSessionInsights } = await helpers(), f = await fixture(), r = registry(f);
-  const first = event(f, extractAccountObservations('get_sample_account', result(account(f)), r, f.props));
+  const first = event(f, extractAccountObservations('get_account', result(account(f)), r, f.props));
   let data = await getSessionInsights(f.db, f.props, f.now + 1000);
   assert.equal(data.accounts[0].historyState, 'single');
   assert.equal(data.accounts[0].observations.length, 1);
   assert.equal(data.accounts[0].observations[0].occurredAt, first.occurredAt);
   assert.equal(data.accounts[0].observations[0].availableBalanceMinor, 12245);
-  const second = event(f, extractAccountObservations('list_sample_accounts', result({ accounts: [account(f, 'operating', 12000), account(f, 'reserve', 30000)] }), r, f.props), { occurredAt: new Date(f.now + 2000).toISOString(), tool: 'list_sample_accounts' });
+  const second = event(f, extractAccountObservations('list_accounts', result({ accounts: [account(f, 'operating', 12000), account(f, 'reserve', 30000)] }), r, f.props), { occurredAt: new Date(f.now + 2000).toISOString(), tool: 'list_accounts' });
   data = await getSessionInsights(f.db, f.props, f.now + 5000);
   assert.deepEqual(data.accounts[0].observations.map(p => [p.eventId, p.occurredAt, p.availableBalanceMinor]), [[first.eventId, first.occurredAt, 12245], [second.eventId, second.occurredAt, 11900]]);
   assert.equal(data.accounts[0].latest?.occurredAt, second.occurredAt);
@@ -92,14 +92,14 @@ test('one and multiple observations retain exactly their persisted times and bal
 
 test('persisted observations revalidate event identity, account identity, time and amounts', async () => {
   const { extractAccountObservations, getSessionInsights } = await helpers(), f = await fixture(), r = registry(f);
-  const [observation] = extractAccountObservations('get_sample_account', result(account(f)), r, f.props);
-  for (const change of [{ visitorId: 'other' }, { epoch: 'other' }, { eventId: 'invalid' }, { occurredAt: 'bad' }, { type: 'TOOL_REFUSED' }, { tool: 'get_sample_transfer' }]) event(f, [observation], change);
+  const [observation] = extractAccountObservations('get_account', result(account(f)), r, f.props);
+  for (const change of [{ visitorId: 'other' }, { epoch: 'other' }, { eventId: 'invalid' }, { occurredAt: 'bad' }, { type: 'TOOL_REFUSED' }, { tool: 'get_transfer' }]) event(f, [observation], change);
   for (const change of [{ id: crypto.randomUUID() }, { account: 'private' }, { availableBalanceMinor: Number.MAX_SAFE_INTEGER + 1 }, { secret: 'PRIVATE' }]) event(f, [{ ...observation, ...change }]);
   event(f, [observation], { occurredAt: new Date(f.now + 10000).toISOString() });
   event(f, [observation, observation]);
   const valid = event(f, [observation]);
-  f.raw.prepare('INSERT INTO audit_events(id,occurred_at,visitor_id,epoch,tool,code,event_json) VALUES(?,?,?,?,?,?,?)').run(crypto.randomUUID(), f.now, f.props.visitorId, f.props.epoch, 'get_sample_account', 'READ_OK', '{broken');
-  f.raw.prepare('INSERT INTO audit_events(id,occurred_at,visitor_id,epoch,tool,code,event_json) VALUES(?,?,?,?,?,?,?)').run(crypto.randomUUID(), f.now, 'other', f.props.epoch, 'get_sample_account', 'READ_OK', JSON.stringify({ ...valid, eventId: crypto.randomUUID() }));
+  f.raw.prepare('INSERT INTO audit_events(id,occurred_at,visitor_id,epoch,tool,code,event_json) VALUES(?,?,?,?,?,?,?)').run(crypto.randomUUID(), f.now, f.props.visitorId, f.props.epoch, 'get_account', 'READ_OK', '{broken');
+  f.raw.prepare('INSERT INTO audit_events(id,occurred_at,visitor_id,epoch,tool,code,event_json) VALUES(?,?,?,?,?,?,?)').run(crypto.randomUUID(), f.now, 'other', f.props.epoch, 'get_account', 'READ_OK', JSON.stringify({ ...valid, eventId: crypto.randomUUID() }));
   const data = await getSessionInsights(f.db, f.props, f.now + 1000);
   assert.deepEqual(data.accounts[0].observations.map(p => p.eventId), [valid.eventId]);
   assert.ok(data.sources.invalidObservationEvents >= 10);
@@ -175,8 +175,8 @@ test('budgets report visitor minute and shared UTC day at exact reset boundaries
   let data = await getToolBudget(f.db, f.props, now);
   assert.deepEqual(data.visitorMinute, { used: 0, limit: 30, remaining: 30, resetsAt: '2030-01-02T00:00:00.000Z' });
   assert.deepEqual(data.sharedUtcDay, { used: 0, limit: 10000, remaining: 10000, resetsAt: '2030-01-02T00:00:00.000Z' });
-  for (let i = 0; i < 30; i++) assert.equal(await consumeTool(f.db, f.props, 'get_sample_account', now), true);
-  assert.equal(await consumeTool(f.db, f.props, 'get_sample_account', now), false);
+  for (let i = 0; i < 30; i++) assert.equal(await consumeTool(f.db, f.props, 'get_account', now), true);
+  assert.equal(await consumeTool(f.db, f.props, 'get_account', now), false);
   data = await getToolBudget(f.db, f.props, now);
   assert.equal(data.visitorMinute.used, 30); assert.equal(data.visitorMinute.remaining, 0);
   assert.equal(data.sharedUtcDay.used, 30); assert.equal(data.sharedUtcDay.remaining, 9970);
@@ -187,13 +187,13 @@ test('budgets report visitor minute and shared UTC day at exact reset boundaries
   const next = await getToolBudget(f.db, f.props, now + 1);
   assert.equal(next.visitorMinute.used, 0); assert.equal(next.sharedUtcDay.used, 0);
   f.raw.prepare("UPDATE tool_limits SET count=10000 WHERE scope='global'").run();
-  assert.equal(await consumeTool(f.db, { ...f.props, visitorId: 'other' }, 'get_sample_account', now), false);
+  assert.equal(await consumeTool(f.db, { ...f.props, visitorId: 'other' }, 'get_account', now), false);
   assert.equal((await getToolBudget(f.db, f.props, now)).sharedUtcDay.remaining, 0);
 });
 
 test('a minute reset preserves the shared day count and reading budgets consumes nothing', async () => {
   const { getToolBudget } = await helpers(), f = await fixture(), now = Date.UTC(2030, 0, 1, 12, 0, 59, 999);
-  await consumeTool(f.db, f.props, 'get_sample_account', now);
+  await consumeTool(f.db, f.props, 'get_account', now);
   const first = await getToolBudget(f.db, f.props, now), second = await getToolBudget(f.db, f.props, now);
   assert.deepEqual(first, second);
   assert.equal(first.visitorMinute.used, 1);

@@ -13,7 +13,7 @@ export interface Hold {
 export function executionCapacity(h:Hold){if(new TextEncoder().encode(h.journal_json).length>224*1024)throw new Error('INSPECTION_ONLY');}
 export const ACTIVE_GUARD=`EXISTS(SELECT 1 FROM config c JOIN visitors v ON v.epoch=c.epoch
  WHERE c.id=1 AND c.epoch=holds.epoch AND c.enabled=1 AND c.maintenance=0 AND c.expires_at>?
- AND json_extract(c.tools_json,'$.request_sample_transfer')=1 AND v.id=holds.visitor_id AND v.revoked=0 AND v.expires_at>?)`;
+ AND json_extract(c.tools_json,'$.request_transfer')=1 AND v.id=holds.visitor_id AND v.revoked=0 AND v.expires_at>?)`;
 export async function getHold(db:D1Database,visitor:Pick<Visitor,'id'|'epoch'>,id:string):Promise<Hold|null> {
   return db.prepare('SELECT * FROM holds WHERE id=? AND visitor_id=? AND epoch=?').bind(id,visitor.id,visitor.epoch).first<Hold>();
 }
@@ -54,7 +54,7 @@ export async function createHold(db:D1Database,props:SessionProps,input:unknown)
   const h:Hold={id:crypto.randomUUID(),visitor_id:props.visitorId,epoch:props.epoch,request_key:args.requestKey,reference:slot.reference,pool_id:registry.pool_id,arguments_json:JSON.stringify(args),body_json:body,body_hash:bodyHash,teller_key:`demo:${props.epoch}:${props.visitorId}:${args.requestKey}`,policy_version:policy.version,policy_rule:policy.rule,created_at:now,expires_at:Math.min(now+1800000,c.expires_at),status:'HELD',version:0,journal_json:'[]',csrf_hash:null,csrf_expires_at:null,approver:null,approved_at:null,attempt_id:null,dispatch_at:null,replay_count:0,send_started_at:null,teller_id:null,result_json:null,error_code:null};
   h.journal_json=JSON.stringify([holdEvent(h,'HELD',now)]);
   const keys=Object.keys(h) as (keyof Hold)[];
-  await db.prepare(`INSERT INTO holds(${keys.join(',')}) SELECT ${keys.map(()=>'?').join(',')} WHERE EXISTS(SELECT 1 FROM config WHERE id=1 AND epoch=? AND enabled=1 AND maintenance=0 AND expires_at>? AND json_extract(tools_json,'$.request_sample_transfer')=1) AND EXISTS(SELECT 1 FROM visitors WHERE id=? AND epoch=? AND revoked=0 AND expires_at>?) ON CONFLICT(visitor_id,epoch,request_key) DO NOTHING`)
+  await db.prepare(`INSERT INTO holds(${keys.join(',')}) SELECT ${keys.map(()=>'?').join(',')} WHERE EXISTS(SELECT 1 FROM config WHERE id=1 AND epoch=? AND enabled=1 AND maintenance=0 AND expires_at>? AND json_extract(tools_json,'$.request_transfer')=1) AND EXISTS(SELECT 1 FROM visitors WHERE id=? AND epoch=? AND revoked=0 AND expires_at>?) ON CONFLICT(visitor_id,epoch,request_key) DO NOTHING`)
     .bind(...keys.map(k=>h[k]),props.epoch,now,props.visitorId,props.epoch,now).run();
   const existing=await db.prepare('SELECT * FROM holds WHERE visitor_id=? AND epoch=? AND request_key=?').bind(props.visitorId,props.epoch,args.requestKey).first<Hold>();
   if(!existing)throw new Error('HOLD_UNCONFIRMED');

@@ -1,6 +1,6 @@
 import { READ_TOOLS } from "../state.ts";
 export const POLICY_VERSION = "sample-gate-v1";
-export const WRITE_TOOL = "request_sample_transfer";
+export const WRITE_TOOL = "request_transfer";
 export const WRITE_ANNOTATIONS = {
   readOnlyHint: false,
   destructiveHint: true,
@@ -19,20 +19,20 @@ export const POLICY_RULES = [
     precedence: 20,
     rule: "disallowed-input",
     effect: "DENY",
-    description: "The input does not match the permitted sample arguments.",
+    description: "The input does not match the allowed arguments.",
   },
   {
     precedence: 30,
     rule: "browser-approval",
     effect: "REQUIRE_APPROVAL",
     description:
-      "Every transfer request waits for approval in its own browser session.",
+      "Every transfer request waits for your approval in this session.",
   },
   {
     precedence: 40,
     rule: "sample-read",
     effect: "ALLOW",
-    description: "A permitted sample read can reach Teller.",
+    description: "An allowed account or transfer read can reach Teller.",
   },
   {
     precedence: 50,

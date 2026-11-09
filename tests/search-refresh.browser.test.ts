@@ -19,8 +19,8 @@ test(
       assert.ok(!result.isError, JSON.stringify(result));
       return result.structuredContent;
     };
-    const accounts = await call("list_sample_accounts", {});
-    await call("request_sample_transfer", {
+    const accounts = await call("list_accounts", {});
+    await call("request_transfer", {
       fromAccount: "operating",
       toAccount: "reserve",
       amountMinor: 137,
@@ -59,7 +59,7 @@ test(
         );
 
       // This records a new event while leaving the saved transfer untouched.
-      await call("get_sample_account", { account: "operating" });
+      await call("get_account", { account: "operating" });
       const exported = await fetch(base + "/audit/export", {
         headers: { Cookie: s.cookie },
       });
@@ -70,7 +70,7 @@ test(
         .map((line) => JSON.parse(line));
       const event = events.find(
         (record) =>
-          record.type === "READ_OK" && record.tool === "get_sample_account",
+          record.type === "READ_OK" && record.tool === "get_account",
       );
       assert.ok(event, "The real MCP read must record an audit event");
       assert.ok(
@@ -109,7 +109,7 @@ test(
         .fill(event.eventId);
       const result = page
         .locator("#search-results a")
-        .filter({ hasText: "Sample data read" });
+        .filter({ hasText: "Data read" });
       await result.waitFor({ timeout: 5000 });
       assert.equal(
         await result.getAttribute("href"),

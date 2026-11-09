@@ -26,8 +26,8 @@ function journalChange(h: Hold, change: (events: any[]) => void): Hold {
 test('plain explanation describes the saved request and the actual ordered historical gate', async () => {
   const { hold } = await savedHold();
   const explanation = requestExplanation(hold);
-  assert.match(explanation.paragraph, /\$1\.00 CAD from operating to reserve/);
-  assert.match(explanation.paragraph, /browser.approval/);
+  assert.match(explanation.paragraph, /\$1\.00 from Operating to Reserve/);
+  assert.match(explanation.paragraph, /Transfers need your approval/);
   assert.match(explanation.paragraph, /approv.*send/i);
   assert.match(explanation.paragraph, /reject.*clos/i);
   assert.match(explanation.paragraph, /Teller has received nothing/);
@@ -44,15 +44,15 @@ test('plain explanation describes the saved request and the actual ordered histo
   ]);
   assert.deepEqual(explanation.trace.map(row => row.description), POLICY_RULES.map(row => row.description));
   assert.ok(explanation.trace.every(row => row.reason.length > 0));
-  assert.ok(explanation.source.includes(hold.id));
-  assert.ok(explanation.source.includes(hold.policy_version));
-  assert.ok(explanation.source.includes(hold.body_hash));
+  assert.match(explanation.source, /Transfers need approval.*version 1/);
+  assert.doesNotMatch(explanation.paragraph + explanation.source, /browser-approval|sample-gate|browser session|browser gate/);
+  assert.equal(explanation.paragraph, 'The agent asked to move $1.00 from Operating to Reserve. Transfers need your approval, so it is waiting here. Approve to send it to Teller once, or reject to close it without sending. Teller has received nothing yet.');
 });
 
 test('explanations use the saved amount and both account directions', async () => {
   const f = await fixture();
   const hold = await createHold(f.db, f.props, { ...f.input, amountMinor: 10000, fromAccount: 'reserve', toAccount: 'operating' });
-  assert.match(requestExplanation(hold).paragraph, /\$100\.00 CAD from reserve to operating/);
+  assert.match(requestExplanation(hold).paragraph, /\$100\.00 from Reserve to Operating/);
 });
 
 test('historical gate is unchanged by later configuration, session, and time changes', async () => {
@@ -73,7 +73,7 @@ test('closed connector decisions never invite approval or rejection', async () =
     assert.equal(explanation.decisionOpen, false);
     assert.equal(explanation.receipt, 'not-sent');
     assert.match(explanation.paragraph, /Teller has received nothing/);
-    assert.match(explanation.paragraph, /approval and rejection are closed/i);
+    assert.match(explanation.paragraph, /request is closed|cannot be approved/i);
     assert.doesNotMatch(explanation.paragraph, /approving (?:will |would )?send/i);
   }
 });
@@ -107,7 +107,7 @@ test('Teller outcomes distinguish posted, held, denied, and upstream rejection',
     assert.equal(explanation.decisionOpen, false);
     assert.match(explanation.paragraph, text);
     assert.doesNotMatch(explanation.paragraph, /received nothing|nothing was sent/i);
-    assert.match(explanation.paragraph, /approval and rejection are closed/i);
+    assert.match(explanation.paragraph, /request is closed|cannot be approved/i);
   }
 });
 
@@ -162,8 +162,9 @@ test('unknown policy versions and mismatched policy rules do not invent gate che
     assert.equal(explanation.traceAvailable, false);
     assert.deepEqual(explanation.trace, []);
     assert.ok(explanation.traceUnavailableReason);
-    assert.ok(explanation.source.includes(value));
-    assert.match(explanation.paragraph, /historical.*cannot be verified/i);
+    assert.match(explanation.source, /Unrecognized/);
+    assert.ok(!explanation.source.includes(value));
+    assert.match(explanation.paragraph, /cannot be verified.*history/i);
   }
 });
 
@@ -184,7 +185,7 @@ test('missing, malformed, reordered, and inconsistent history makes the trace un
     journalChange(hold, events => { events[0].policyVersion = 'other'; }),
     journalChange(hold, events => { events[0].policyRule = 'default-deny'; }),
     journalChange(hold, events => { events[0].policyEffect = 'ALLOW'; }),
-    journalChange(hold, events => { events[0].tool = 'get_sample_account'; }),
+    journalChange(hold, events => { events[0].tool = 'get_account'; }),
     journalChange(hold, events => { events[0].holdState = 'POSTED'; }),
   ];
   for (const h of cases) {

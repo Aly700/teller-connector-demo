@@ -10,14 +10,14 @@ const registry: Registry = { pool_id: '001', epoch, visitor_id: crypto.randomUUI
 const account = { id: ids[0], currency: 'CAD', status: 'ACTIVE', ledgerBalanceMinor: 99900, availableBalanceMinor: 89899, version: 2, createdAt: '2025-01-01T00:00:00.000000Z' };
 const transfer = { id: ids[3], fromAccountId: ids[0], toAccountId: ids[1], amountMinor: 10001, currency: 'CAD', state: 'HELD', reasonCode: null, decisionId: ids[4], approvalId: ids[5], createdAt: account.createdAt, postedAt: null, reversedAt: null };
 const secret = 'a'.repeat(64);
-const names = ['list_sample_accounts', 'get_sample_account', 'get_sample_transfer'];
+const names = ['list_accounts', 'get_account', 'get_transfer'];
 const args = [{}, { account: 'operating' }, { reference: 'sample-held' }];
 function client(fetcher: (request: Request) => Promise<Response>, sleeps: number[] = []) {
   let now = 0;
   return new TellerClient('http://localhost', secret, epoch, { fetcher, now: () => now, sleep: async n => { sleeps.push(n); now += n; } });
 }
 test('four exact narrow schemas and all four annotations are listed', () => {
-  assert.deepEqual(tools.map(t => t.name), [...names, 'request_sample_transfer']);
+  assert.deepEqual(tools.map(t => t.name), [...names, 'request_transfer']);
   for (const tool of tools.slice(0,3)) {
     assert.equal(tool.inputSchema.additionalProperties, false);
     assert.deepEqual(tool.annotations, { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false });
@@ -34,11 +34,11 @@ test('extra fields, unknown aliases, UUID paths and wrong shapes fail before any
 });
 test('safe upstream error matrix preserves codes, exact messages, and no partial list', async () => {
   const expected = [
-    [400, 'UPSTREAM_CONTRACT', ['Teller rejected the sample account read. The demo needs repair.', 'Teller rejected this sample account read. The demo needs repair.', 'Teller rejected this sample transfer read. The demo needs repair.']],
-    [404, 'SAMPLE_RESET', ['Sample accounts changed. Start a new demo session.', 'This sample account is unavailable. Start a new demo session.', 'No sample transfer exists for that reference. Check the demo queue.']],
-    [401, 'UPSTREAM_AUTH', ['Sample accounts are unavailable while the demo connection is repaired.', 'This sample account is unavailable while the demo connection is repaired.', 'This sample transfer is unavailable while the demo connection is repaired.']],
-    [403, 'UPSTREAM_AUTH', ['Sample accounts are unavailable while the demo connection is repaired.', 'This sample account is unavailable while the demo connection is repaired.', 'This sample transfer is unavailable while the demo connection is repaired.']],
-    [409, 'UPSTREAM_CONFLICT', ['Sample accounts could not be read consistently. Try again.', 'This sample account could not be read consistently. Try again.', 'This sample transfer could not be read consistently. Check the queue.']],
+    [400, 'UPSTREAM_CONTRACT', ['Teller rejected the account read. The demo needs repair.', 'Teller rejected this account read. The demo needs repair.', 'Teller rejected this transfer read. The demo needs repair.']],
+    [404, 'SAMPLE_RESET', ['Accounts changed. Start a new demo session.', 'This account is unavailable. Start a new demo session.', 'No transfer exists for that reference. Check the demo queue.']],
+    [401, 'UPSTREAM_AUTH', ['Accounts are unavailable while the demo connection is repaired.', 'This account is unavailable while the demo connection is repaired.', 'This transfer is unavailable while the demo connection is repaired.']],
+    [403, 'UPSTREAM_AUTH', ['Accounts are unavailable while the demo connection is repaired.', 'This account is unavailable while the demo connection is repaired.', 'This transfer is unavailable while the demo connection is repaired.']],
+    [409, 'UPSTREAM_CONFLICT', ['Accounts could not be read consistently. Try again.', 'This account could not be read consistently. Try again.', 'This transfer could not be read consistently. Check the queue.']],
   ] as const;
   for (const [status, code, messages] of expected) for (let i = 0; i < 3; i++) {
     const result = await readTool(names[i], args[i], registry, client(async request => new URL(request.url).pathname.endsWith('/operating') && i === 0 ? Response.json(account) : new Response('SECRET SQL STACK', { status })));
@@ -50,13 +50,13 @@ test('safe upstream error matrix preserves codes, exact messages, and no partial
 });
 test('invalid JSON, unsafe numbers, mismatched identities and origin down return unavailable', async () => {
   for (const bad of [async () => new Response('{'), async () => Response.json({ ...account, ledgerBalanceMinor: Number.MAX_SAFE_INTEGER + 1 }), async () => Response.json({ ...account, id: ids[1] }), async () => { throw new Error('SECRET origin down'); }]) {
-    const result = await readTool('get_sample_account', args[1], registry, client(bad));
+    const result = await readTool('get_account', args[1], registry, client(bad));
     assert.equal(result.structuredContent?.code, 'UPSTREAM_UNAVAILABLE');
-    assert.deepEqual(result.content, [{ type: 'text', text: 'This sample account is unavailable. Try again later.' }]);
+    assert.deepEqual(result.content, [{ type: 'text', text: 'This account is unavailable. Try again later.' }]);
   }
 });
 test('malformed success and origin-down failures are safe for every read, including a partial account fanout', async () => {
-  const messages = ['Sample accounts are unavailable. Try again later.', 'This sample account is unavailable. Try again later.', 'This sample transfer is unavailable. Check the queue or try again later.'];
+  const messages = ['Accounts are unavailable. Try again later.', 'This account is unavailable. Try again later.', 'This transfer is unavailable. Check the queue or try again later.'];
   for (let i = 0; i < 3; i++) for (const fault of ['json', 'down']) {
     const result = await readTool(names[i], args[i], registry, client(async request => {
       if (i === 0 && new URL(request.url).pathname.endsWith('/operating')) return Response.json(account);
@@ -82,7 +82,7 @@ test('origin rejects oversized Teller bodies while streaming and the client does
 test('bad signing key is refused by the real origin handler and becomes the safe auth error', async () => {
   let calls = 0;
   const pool = { epoch, expiresAt: Date.now() + 60000, pools: [{ poolId: '001', accounts: JSON.parse(registry.accounts_json), transfers: JSON.parse(registry.transfers_json) }] };
-  const result = await readTool('get_sample_account', args[1], registry, client(request => originFetch(request, { secret: 'b'.repeat(64), apiKey: 'key', pool, maintenance: false, upstream: async () => { calls++; return Response.json(account); } })));
+  const result = await readTool('get_account', args[1], registry, client(request => originFetch(request, { secret: 'b'.repeat(64), apiKey: 'key', pool, maintenance: false, upstream: async () => { calls++; return Response.json(account); } })));
   assert.equal(result.structuredContent?.code, 'UPSTREAM_AUTH'); assert.equal(calls, 0);
 });
 test('read retries only transient failures, at most twice, honoring Retry-After and total budget', async () => {
@@ -102,7 +102,7 @@ test('known held transfer keeps Teller fields and distinctly reports TELLER_HELD
   let calls = 0; const upstream = client(async () => { calls++; return Response.json(transfer); });
   const held = await readTool(names[2], args[2], registry, upstream);
   assert.equal(held.isError, undefined); assert.equal(held.structuredContent?.state, 'HELD'); assert.equal(held.structuredContent?.status, 'TELLER_HELD');
-  assert.equal(held.structuredContent?.notice, 'Sample data. No real money.');
+  assert.equal(held.structuredContent?.notice, 'Demo data. No real money.');
   const absent = await readTool(names[2], { reference: 'request-1' }, registry, upstream);
   assert.equal(absent.structuredContent?.code, 'NOT_FOUND'); assert.equal(absent._meta?.upstreamStatus,null); assert.equal(calls, 1);
 });
