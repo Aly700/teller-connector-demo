@@ -57,7 +57,8 @@ try {
   execFileSync(`${pg}/createdb`, ['teller_demo'], { env });
   start('teller');
   let healthy = false;
-  for (let i = 0; i < 100; i++) {
+  // Teller can take 25 s or more to start under launchd background priority.
+  for (let i = 0; i < 450; i++) {
     try { healthy = (await fetch('http://127.0.0.1:18080/actuator/health', { signal: AbortSignal.timeout(500) })).ok; } catch {}
     if (healthy) break;
     await new Promise(resolve => setTimeout(resolve, 200));
@@ -68,7 +69,7 @@ try {
   await atomic('.data/origin-state.json', { ...SAMPLE, maintenance: false, writesEnabled: true, epoch: pool.epoch });
   start('origin');
   let ready = false;
-  for (let i = 0; i < 50; i++) {
+  for (let i = 0; i < 300; i++) {
     try { ready = (await fetch(await signRequest('http://127.0.0.1:18081/v1/pools/001/accounts/operating', process.env.ORIGIN_SIGNING_SECRET!, pool.epoch))).ok; } catch {}
     if (ready) break;
     await new Promise(resolve => setTimeout(resolve, 100));

@@ -4,6 +4,7 @@ umask 077
 case "${1:-}" in
   postgres)
     [[ -f .data/pg/PG_VERSION ]] || { echo 'Initialize the dedicated cluster first.'; exit 1; }
+    export LC_ALL=C LANG=C  # launchd gives no locale; postgres aborts as multithreaded without one
     exec "$PG_BIN/postgres" -D "$ROOT/.data/pg"
     ;;
   teller)

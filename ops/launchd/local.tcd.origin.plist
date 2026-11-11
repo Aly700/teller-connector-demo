@@ -22,7 +22,7 @@
 	<key>ThrottleInterval</key>
 	<integer>60</integer>
 	<key>ProcessType</key>
-	<string>Background</string>
+	<string>Standard</string>
 	<key>StandardOutPath</key>
 	<string>@ROOT@/.data/logs/launchd-origin.log</string>
 	<key>StandardErrorPath</key>
