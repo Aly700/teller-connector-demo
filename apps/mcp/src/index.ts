@@ -20,6 +20,7 @@ import {
   seededPage,
   pageError,
   accountsPage,
+  mcpBrowserPage,
 } from "./pages.ts";
 import { auditExport, auditPage, recordCall } from "./audit.ts";
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
@@ -314,6 +315,8 @@ async function handleRequest(
       await server.connect(transport);
       return transport.handleRequest(req);
     }).fetch(request, env, ctx);
+    if (response.status === 401 && browserVisit(request))
+      return mcpBrowserPage(env.PUBLIC_ORIGIN, response.headers.get("WWW-Authenticate"));
     if (response.status === 401 || response.status === 403)
       await securityEvent(env.DB, "AUTH_FAILURE");
     return response;
@@ -326,6 +329,14 @@ async function handleRequest(
           503,
         );
   }
+}
+function browserVisit(request: Request) {
+  return (
+    request.method === "GET" &&
+    new URL(request.url).pathname === "/mcp" &&
+    !request.headers.has("Authorization") &&
+    (request.headers.get("Accept") ?? "").includes("text/html")
+  );
 }
 export default {
   async fetch(

@@ -1844,3 +1844,6 @@ pre, .arguments pre, .schema pre { border-radius: 12px; background: var(--raised
 .request-properties .facts dd > small { display: block; color: var(--muted); margin-top: 4px; }
 
 .plain-words small, .request-dialog .plain-words small { font-size: 12px; line-height: 1.6; }
+.error-page .browser-steps { display:inline-block;margin:0 0 20px;padding-left:20px;text-align:left;font-size:14px;line-height:1.6}
+.error-page .browser-steps li+li { margin-top:4px}
+.error-page .copy-line { justify-content:center;margin:0 auto 24px}

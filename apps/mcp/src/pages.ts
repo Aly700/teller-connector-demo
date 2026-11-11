@@ -51,6 +51,17 @@ export function pageError(title: string, message: string, status: number) {
     status,
   );
 }
+// A browser that opens the MCP address gets directions instead of a blank 401.
+// The status and OAuth challenge stay the same for any client that reads them.
+export function mcpBrowserPage(origin: string, challenge: string | null) {
+  const headers = new Headers();
+  if (challenge) headers.set("WWW-Authenticate", challenge);
+  return page(
+    `<section class="error-page">${icon("lock")}<h1>This address is for Claude</h1><p class="intro">Add it to Claude as a custom connector. A browser cannot open it.</p><ol class="browser-steps"><li>In Claude, open Settings, Connectors, Add custom connector.</li><li>Paste this address, keep the defaults and connect.</li><li>Start the demo session when Claude opens it.</li></ol>${copyValue(`${origin}/mcp`, "connector address")}<div class="buttons"><a class="button secondary" href="/">Open the console ${icon("arrow")}</a></div></section>`,
+    401,
+    headers,
+  );
+}
 export async function sessionHolds(env: Env, visitor: Visitor) {
   const rows = await env.DB.prepare(
     "SELECT * FROM holds WHERE visitor_id=? AND epoch=? ORDER BY created_at DESC,id",
